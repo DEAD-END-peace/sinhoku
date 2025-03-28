@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>方位角・距離計算ツール（改良版）</title>
+    <script>
+        let isWorldGeodetic = true;
+
+        function toggleGeodeticSystem() {
+            isWorldGeodetic = !isWorldGeodetic;
+            document.getElementById("geodeticSystem").innerText = isWorldGeodetic ? "世界測地系" : "日本測地系";
+        }
+
+        function toRadians(degrees) { return degrees * Math.PI / 180; }
+        function toDegrees(radians) { return radians * 180 / Math.PI; }
+        function dmsToDecimal(deg, min, sec) {
+            return parseFloat(deg) + parseFloat(min) / 60 + parseFloat(sec) / 3600;
+        }
+
+        function convertToWorldGeodetic(lat, lon) {
+            if (!isWorldGeodetic) {
+                lat -= 0.00010695 * lat + 0.000017464 * lon + 0.0046017;
+                lon -= 0.000046038 * lat + 0.000083043 * lon + 0.010040;
+            }
+            return { lat, lon };
+        }
+
+        function calculateBearingAndDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371.0;
+            let φ1 = toRadians(lat1), φ2 = toRadians(lat2);
+            let Δλ = toRadians(lon2 - lon1);
+            let y = Math.sin(Δλ) * Math.cos(φ2);
+            let x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+            let bearing = (toDegrees(Math.atan2(y, x)) + 360) % 360;
+            let a = Math.sin((φ2 - φ1) / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+            let distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return { bearing: bearing.toFixed(2) + "°", distance: distance.toFixed(2) };
+        }
+
+        function calculateMapCode(lat, lon) {
+            return `https://www.google.com/maps?q=${lat},${lon}`;
+        }
+
+        function calculate() {
+            const points = ['A', 'B', 'C', 'D'];
+            let coords = {};
+            let mapLinksHtml = '<h3>各地点のGoogleマップリンク</h3><ul>';
+
+            points.forEach(point => {
+                let lat = ['deg', 'min', 'sec'].map(u => document.getElementById(`lat${point}_${u}`).value);
+                let lon = ['deg', 'min', 'sec'].map(u => document.getElementById(`lon${point}_${u}`).value);
+                coords[point] = convertToWorldGeodetic(dmsToDecimal(...lat), dmsToDecimal(...lon));
+                let mapUrl = calculateMapCode(coords[point].lat, coords[point].lon);
+                mapLinksHtml += `<li>${point}点: <a href="${mapUrl}" target="_blank">${mapUrl}</a></li>`;
+            });
+
+            mapLinksHtml += '</ul>';
+            document.getElementById("mapLinks").innerHTML = mapLinksHtml;
+
+            let results = '<table border="1"><tr><th>区間</th><th>方位角</th><th>距離(km)</th></tr>';
+
+            ['B', 'C', 'D'].forEach(point => {
+                let result = calculateBearingAndDistance(coords['A'].lat, coords['A'].lon, coords[point].lat, coords[point].lon);
+                results += `<tr><td>A→${point}</td><td>${result.bearing}</td><td>${result.distance}</td></tr>`;
+            });
+
+            results += '</table>';
+            document.getElementById("results").innerHTML = results;
+        }
+    </script>
+</head>
+<body>
+    <h2>方位角・距離計算ツール（Googleマップ連携版）</h2>
+    <button onclick="toggleGeodeticSystem()">測地系切替: <span id="geodeticSystem">世界測地系</span></button>
+    <h3>使用方法</h3>
+    <p>1. 各地点 (A, B, C, D) の緯度・経度を度分秒 (DMS) 形式で入力してください。</p>
+    <p>2. 「計算」ボタンを押すと、A点からB, C, D点までの方位角と距離が表示されます。</p>
+    <p>3. 計算結果とは別に、各地点のGoogleマップリンクが表示されますので、クリックすると地図で確認できます。</p>
+    <form onsubmit="calculate(); return false;">
+        <table border="1">
+            <tr><th>地点</th><th>緯度(度 分 秒)</th><th>経度(度 分 秒)</th></tr>
+            <script>
+                ['A', 'B', 'C', 'D'].forEach(point => {
+                    document.write(`<tr><td>${point}点</td>`);
+                    ['lat', 'lon'].forEach(c => {
+                        document.write(`<td>`);
+                        ['deg', 'min', 'sec'].forEach(u => {
+                            document.write(`<input type="number" step="any" id="${c}${point}_${u}" placeholder="${u}"> `);
+                        });
+                        document.write(`</td>`);
+                    });
+                    document.write(`</tr>`);
+                });
+            </script>
+        </table>
+        <button onclick="calculate()">計算</button>
+    </form>
+    <div id="results"></div>
+    <div id="mapLinks"></div> <!-- 各地点のGoogleマップリンク表示エリア -->
+</body>
+</html>
