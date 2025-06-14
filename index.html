@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <title>方位角・距離計算ツール（改良版）</title>
     <script>
-        let isWorldGeodetic = true;
+        let isDecimalMode = true;
 
-        function toggleGeodeticSystem() {
-            isWorldGeodetic = !isWorldGeodetic;
-            document.getElementById("geodeticSystem").innerText = isWorldGeodetic ? "世界測地系" : "日本測地系";
+        function toggleInputMode() {
+            isDecimalMode = !isDecimalMode;
+            document.getElementById("inputMode").innerText = isDecimalMode ? "世界測地系（10進数）" : "世界測地系（60進数）";
+            document.querySelectorAll(".dmsInput, .decimalInput").forEach(el => {
+                el.style.display = (isDecimalMode && el.classList.contains("decimalInput")) || (!isDecimalMode && el.classList.contains("dmsInput")) ? "inline" : "none";
+            });
         }
 
         function toRadians(degrees) { return degrees * Math.PI / 180; }
@@ -17,11 +20,15 @@
             return parseFloat(deg) + parseFloat(min) / 60 + parseFloat(sec) / 3600;
         }
 
+        function decimalToDMS(decimal) {
+            const deg = Math.floor(decimal);
+            const minFloat = (decimal - deg) * 60;
+            const min = Math.floor(minFloat);
+            const sec = ((minFloat - min) * 60).toFixed(2);
+            return `${deg}°${min}′${sec}″`;
+        }
+
         function convertToWorldGeodetic(lat, lon) {
-            if (!isWorldGeodetic) {
-                lat -= 0.00010695 * lat + 0.000017464 * lon + 0.0046017;
-                lon -= 0.000046038 * lat + 0.000083043 * lon + 0.010040;
-            }
             return { lat, lon };
         }
 
@@ -31,14 +38,21 @@
             let Δλ = toRadians(lon2 - lon1);
             let y = Math.sin(Δλ) * Math.cos(φ2);
             let x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-            let bearing = (toDegrees(Math.atan2(y, x)) + 360) % 360;
+            let bearingDecimal = (toDegrees(Math.atan2(y, x)) + 360) % 360;
+            let bearingDMS = decimalToDMS(bearingDecimal);
             let a = Math.sin((φ2 - φ1) / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
             let distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return { bearing: bearing.toFixed(2) + "°", distance: distance.toFixed(2) };
+            return { bearing: bearingDMS, distance: distance.toFixed(2) };
         }
 
         function calculateMapCode(lat, lon) {
             return `https://www.google.com/maps?q=${lat},${lon}`;
+        }
+
+        function parseLatLonPair(inputId) {
+            const val = document.getElementById(inputId).value;
+            const parts = val.split(',').map(s => parseFloat(s.trim()));
+            return parts.length === 2 ? parts : [NaN, NaN];
         }
 
         function calculate() {
@@ -47,9 +61,19 @@
             let mapLinksHtml = '<h3>各地点のGoogleマップリンク</h3><ul>';
 
             points.forEach(point => {
-                let lat = ['deg', 'min', 'sec'].map(u => document.getElementById(`lat${point}_${u}`).value);
-                let lon = ['deg', 'min', 'sec'].map(u => document.getElementById(`lon${point}_${u}`).value);
-                coords[point] = convertToWorldGeodetic(dmsToDecimal(...lat), dmsToDecimal(...lon));
+                let lat, lon;
+                if (document.getElementById(`latlon${point}`).value) {
+                    [lat, lon] = parseLatLonPair(`latlon${point}`);
+                } else if (isDecimalMode) {
+                    lat = parseFloat(document.getElementById(`lat${point}_dec`).value);
+                    lon = parseFloat(document.getElementById(`lon${point}_dec`).value);
+                } else {
+                    let latDMS = ['deg', 'min', 'sec'].map(u => document.getElementById(`lat${point}_${u}`).value);
+                    let lonDMS = ['deg', 'min', 'sec'].map(u => document.getElementById(`lon${point}_${u}`).value);
+                    lat = dmsToDecimal(...latDMS);
+                    lon = dmsToDecimal(...lonDMS);
+                }
+                coords[point] = convertToWorldGeodetic(lat, lon);
                 let mapUrl = calculateMapCode(coords[point].lat, coords[point].lon);
                 mapLinksHtml += `<li>${point}点: <a href="${mapUrl}" target="_blank">${mapUrl}</a></li>`;
             });
@@ -57,7 +81,7 @@
             mapLinksHtml += '</ul>';
             document.getElementById("mapLinks").innerHTML = mapLinksHtml;
 
-            let results = '<table border="1"><tr><th>区間</th><th>方位角</th><th>距離(km)</th></tr>';
+            let results = '<table border="1"><tr><th>区間</th><th>方位角（60進）</th><th>距離(km)</th></tr>';
 
             ['B', 'C', 'D'].forEach(point => {
                 let result = calculateBearingAndDistance(coords['A'].lat, coords['A'].lon, coords[point].lat, coords[point].lon);
@@ -71,31 +95,35 @@
 </head>
 <body>
     <h2>方位角・距離計算ツール（Googleマップ連携版）</h2>
-    <button onclick="toggleGeodeticSystem()">測地系切替: <span id="geodeticSystem">世界測地系</span></button>
+    <button onclick="toggleInputMode()">入力モード切替: <span id="inputMode">世界測地系（10進数）</span></button>
     <h3>使用方法</h3>
-    <p>1. 各地点 (A, B, C, D) の緯度・経度を度分秒 (DMS) 形式で入力してください。</p>
-    <p>2. 「計算」ボタンを押すと、A点からB, C, D点までの方位角と距離が表示されます。</p>
-    <p>3. 計算結果とは別に、各地点のGoogleマップリンクが表示されますので、クリックすると地図で確認できます。</p>
+    <p>1. 各地点 (A, B, C, D) の緯度・経度を「60進数 (度分秒)」または「10進数」で入力できます。</p>
+    <p>2. Googleマップからコピーした「緯度, 経度」形式も貼り付け可能です。</p>
+    <p>3. 「計算」ボタンを押すと、A点からB, C, D点までの方位角（60進数）と距離が表示されます。</p>
     <form onsubmit="calculate(); return false;">
         <table border="1">
-            <tr><th>地点</th><th>緯度(度 分 秒)</th><th>経度(度 分 秒)</th></tr>
+            <tr><th>地点</th><th>緯度・経度ペア（オプション）</th><th>緯度</th><th>経度</th></tr>
             <script>
                 ['A', 'B', 'C', 'D'].forEach(point => {
                     document.write(`<tr><td>${point}点</td>`);
+                    document.write(`<td><input type="text" id="latlon${point}" placeholder="33.19633, 130.20249" size="25"></td>`);
                     ['lat', 'lon'].forEach(c => {
-                        document.write(`<td>`);
+                        document.write('<td>');
+                        document.write(`<span class="dmsInput">`);
                         ['deg', 'min', 'sec'].forEach(u => {
                             document.write(`<input type="number" step="any" id="${c}${point}_${u}" placeholder="${u}"> `);
                         });
-                        document.write(`</td>`);
+                        document.write('</span>');
+                        document.write(`<span class="decimalInput" style="display:none;"><input type="number" step="any" id="${c}${point}_dec" placeholder="10進度"></span>`);
+                        document.write('</td>');
                     });
-                    document.write(`</tr>`);
+                    document.write('</tr>');
                 });
             </script>
         </table>
         <button onclick="calculate()">計算</button>
     </form>
     <div id="results"></div>
-    <div id="mapLinks"></div> <!-- 各地点のGoogleマップリンク表示エリア -->
+    <div id="mapLinks"></div>
 </body>
 </html>
