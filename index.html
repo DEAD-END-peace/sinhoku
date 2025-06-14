@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>方位角・距離計算ツール（改良版）</title>
     <script>
-        let isDecimalMode = true;
+        let isDecimalMode = false; // ← 初期状態を60進数（false）ではなく10進数（true）に修正
 
         function toggleInputMode() {
             isDecimalMode = !isDecimalMode;
@@ -91,6 +91,11 @@
             results += '</table>';
             document.getElementById("results").innerHTML = results;
         }
+
+        // 初期化処理で10進数表示モードに切り替える
+        window.onload = function() {
+            if (!isDecimalMode) toggleInputMode();
+        }
     </script>
 </head>
 <body>
@@ -109,12 +114,12 @@
                     document.write(`<td><input type="text" id="latlon${point}" placeholder="33.19633, 130.20249" size="25"></td>`);
                     ['lat', 'lon'].forEach(c => {
                         document.write('<td>');
-                        document.write(`<span class="dmsInput">`);
+                        document.write(`<span class="dmsInput" style="display:none;">`);
                         ['deg', 'min', 'sec'].forEach(u => {
                             document.write(`<input type="number" step="any" id="${c}${point}_${u}" placeholder="${u}"> `);
                         });
                         document.write('</span>');
-                        document.write(`<span class="decimalInput" style="display:none;"><input type="number" step="any" id="${c}${point}_dec" placeholder="10進度"></span>`);
+                        document.write(`<span class="decimalInput"><input type="number" step="any" id="${c}${point}_dec" placeholder="10進度"></span>`);
                         document.write('</td>');
                     });
                     document.write('</tr>');
