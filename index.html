@@ -2,10 +2,67 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>方位角・距離計算ツール（改良版）</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f4f8fb;
+            margin: 0;
+            padding: 1em;
+            color: #333;
+        }
+        h2 {
+            color: #007acc;
+        }
+        table {
+            width: 100%;
+            max-width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1em;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 0.5em;
+            text-align: left;
+        }
+        input[type="number"], input[type="text"] {
+            width: 95%;
+            padding: 0.3em;
+            margin: 0.2em 0;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 0.5em 1em;
+            margin: 0.5em 0;
+            background-color: #007acc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        button:hover {
+            background-color: #005e99;
+        }
+        @media screen and (max-width: 600px) {
+            table, thead, tbody, th, td, tr {
+                display: block;
+                width: 100%;
+            }
+            tr {
+                margin-bottom: 1em;
+                border-bottom: 1px solid #ccc;
+            }
+            th {
+                background: #e0f0ff;
+                font-weight: bold;
+            }
+        }
+    </style>
     <script>
-        let isDecimalMode = false; // ← 初期状態を60進数（false）ではなく10進数（true）に修正
-
+        let isDecimalMode = false;
         function toggleInputMode() {
             isDecimalMode = !isDecimalMode;
             document.getElementById("inputMode").innerText = isDecimalMode ? "世界測地系（10進数）" : "世界測地系（60進数）";
@@ -13,13 +70,11 @@
                 el.style.display = (isDecimalMode && el.classList.contains("decimalInput")) || (!isDecimalMode && el.classList.contains("dmsInput")) ? "inline" : "none";
             });
         }
-
         function toRadians(degrees) { return degrees * Math.PI / 180; }
         function toDegrees(radians) { return radians * 180 / Math.PI; }
         function dmsToDecimal(deg, min, sec) {
             return parseFloat(deg) + parseFloat(min) / 60 + parseFloat(sec) / 3600;
         }
-
         function decimalToDMS(decimal) {
             const deg = Math.floor(decimal);
             const minFloat = (decimal - deg) * 60;
@@ -27,11 +82,9 @@
             const sec = ((minFloat - min) * 60).toFixed(2);
             return `${deg}°${min}′${sec}″`;
         }
-
         function convertToWorldGeodetic(lat, lon) {
             return { lat, lon };
         }
-
         function calculateBearingAndDistance(lat1, lon1, lat2, lon2) {
             const R = 6371.0;
             let φ1 = toRadians(lat1), φ2 = toRadians(lat2);
@@ -44,22 +97,18 @@
             let distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             return { bearing: bearingDMS, distance: distance.toFixed(2) };
         }
-
         function calculateMapCode(lat, lon) {
             return `https://www.google.com/maps?q=${lat},${lon}`;
         }
-
         function parseLatLonPair(inputId) {
             const val = document.getElementById(inputId).value;
             const parts = val.split(',').map(s => parseFloat(s.trim()));
             return parts.length === 2 ? parts : [NaN, NaN];
         }
-
         function calculate() {
             const points = ['A', 'B', 'C', 'D'];
             let coords = {};
             let mapLinksHtml = '<h3>各地点のGoogleマップリンク</h3><ul>';
-
             points.forEach(point => {
                 let lat, lon;
                 if (document.getElementById(`latlon${point}`).value) {
@@ -77,22 +126,16 @@
                 let mapUrl = calculateMapCode(coords[point].lat, coords[point].lon);
                 mapLinksHtml += `<li>${point}点: <a href="${mapUrl}" target="_blank">${mapUrl}</a></li>`;
             });
-
             mapLinksHtml += '</ul>';
             document.getElementById("mapLinks").innerHTML = mapLinksHtml;
-
             let results = '<table border="1"><tr><th>区間</th><th>方位角（60進）</th><th>距離(km)</th></tr>';
-
             ['B', 'C', 'D'].forEach(point => {
                 let result = calculateBearingAndDistance(coords['A'].lat, coords['A'].lon, coords[point].lat, coords[point].lon);
                 results += `<tr><td>A→${point}</td><td>${result.bearing}</td><td>${result.distance}</td></tr>`;
             });
-
             results += '</table>';
             document.getElementById("results").innerHTML = results;
         }
-
-        // 初期化処理で10進数表示モードに切り替える
         window.onload = function() {
             if (!isDecimalMode) toggleInputMode();
         }
@@ -101,17 +144,14 @@
 <body>
     <h2>方位角・距離計算ツール（Googleマップ連携版）</h2>
     <button onclick="toggleInputMode()">入力モード切替: <span id="inputMode">世界測地系（10進数）</span></button>
-    <h3>使用方法</h3>
-    <p>1. 各地点 (A, B, C, D) の緯度・経度を「60進数 (度分秒)」または「10進数」で入力できます。</p>
-    <p>2. Googleマップからコピーした「緯度, 経度」形式も貼り付け可能です。</p>
-    <p>3. 「計算」ボタンを押すと、A点からB, C, D点までの方位角（60進数）と距離が表示されます。</p>
+    <p>各地点の緯度・経度を入力（Googleマップからのコピペにも対応）</p>
     <form onsubmit="calculate(); return false;">
-        <table border="1">
-            <tr><th>地点</th><th>緯度・経度ペア（オプション）</th><th>緯度</th><th>経度</th></tr>
+        <table>
+            <tr><th>地点</th><th>緯度・経度ペア</th><th>緯度</th><th>経度</th></tr>
             <script>
                 ['A', 'B', 'C', 'D'].forEach(point => {
                     document.write(`<tr><td>${point}点</td>`);
-                    document.write(`<td><input type="text" id="latlon${point}" placeholder="33.19633, 130.20249" size="25"></td>`);
+                    document.write(`<td><input type="text" id="latlon${point}" placeholder="33.19633, 130.20249"></td>`);
                     ['lat', 'lon'].forEach(c => {
                         document.write('<td>');
                         document.write(`<span class="dmsInput" style="display:none;">`);
