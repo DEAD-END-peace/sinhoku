@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>方位角・距離計算ツール（URL共有版）</title>
+  <script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=LWEqDK3xKzAbj7X5xyiohu5FyvyJ6w9eLJw-Iwo2LuCOGTkSpdcPXD4vxxyLYYmP9o0R9nVRXVNQOpJv2vNdRQ" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="https://gc.kis.v2.scr.kaspersky-labs.com/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly90cnVlbm9ydGhjYWxjdWxhdGlvbi5zYWt1cmF3ZWIuY29tLw"/>
   <style>
     body { font-family: sans-serif; background-color: #f4f8fb; margin:0; padding:1em; color:#333; }
     h2 { color: #007acc; }
@@ -45,35 +46,27 @@
     #toast.show { visibility: visible; opacity: 1; transform: translateY(0); }
 
     /* モーダル（マップ選択） */
-    .modal-backdrop {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.35);
-      display: none; align-items: center; justify-content: center;
-      z-index: 1200;
-    }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: center; justify-content: center; z-index: 1200; }
     .modal-backdrop.show { display: flex; }
-    .modal {
-      width: min(92vw, 420px);
-      background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.2);
-      padding: 18px;
-    }
+    .modal { width: min(92vw, 420px); background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.2); padding: 18px; }
     .modal h4 { margin: 0 0 12px; font-size: 18px; }
     .btn-row { display: grid; grid-template-columns: 1fr; gap: 10px; }
-    @media (min-width: 420px) {
-      .btn-row { grid-template-columns: 1fr 1fr; }
-    }
-    .btn-outline {
-      background: #fff; color: #007acc; border: 1px solid #007acc;
-      padding: 10px 12px; border-radius: 8px; cursor: pointer;
-    }
+    @media (min-width: 420px) { .btn-row { grid-template-columns: 1fr 1fr; } }
+    .btn-outline { background: #fff; color: #007acc; border: 1px solid #007acc; padding: 10px 12px; border-radius: 8px; cursor: pointer; }
     .btn-outline:hover { background: #f0f8ff; }
-    .btn-close {
-      margin-top: 8px; width: 100%;
-      background: #e5e7eb; color: #333; border: none; border-radius: 8px; padding: 10px 12px; cursor: pointer;
-    }
+    .btn-close { margin-top: 8px; width: 100%; background: #e5e7eb; color: #333; border: none; border-radius: 8px; padding: 10px 12px; cursor: pointer; }
     .btn-close:hover { background: #d1d5db; }
     body.modal-open { overflow: hidden; }
     .map-link { text-decoration: underline; color: #007acc; cursor: pointer; background: transparent; border: none; }
+
+    /* ▼ 追加：任意角度・距離UI */
+    .bearing-card { background:#fff; border:1px solid #ccc; border-radius:8px; padding:10px; margin-top:10px; }
+    .bearing-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .bearing-row label { display:flex; align-items:center; gap:6px; }
+    .bearing-row input[type="number"], .bearing-row select { width:120px; padding:0.3em; }
+    #arbList { list-style: none; padding-left: 1em; }
+    #arbList li { margin: 6px 0; }
+    #arbList .coords { margin-left:8px; font-size:12px; color:#555; }
   </style>
 </head>
 <body>
@@ -166,6 +159,32 @@
 
   <div id="results"></div>
   <div id="mapLinks"></div>
+
+  <!-- ▼ 追加：任意角度・距離でA点から目的地リンクを作成（mapLinks の“下”） -->
+  <div class="bearing-card" aria-labelledby="hdrBearing">
+    <h3 id="hdrBearing" style="margin:0 0 6px;">任意の角度・距離でリンクを追加（A点基準）</h3>
+    <div class="bearing-row" style="margin:6px 0 8px;">
+      <label>角度(° 真北=0, 時計回り)
+        <input id="any_bearing" type="number" step="0.1" min="-360" max="1080" placeholder="例: 90">
+      </label>
+      <label>距離
+        <input id="any_distance" type="number" step="0.001" min="0" placeholder="例: 1.5">
+      </label>
+      <label>単位
+        <select id="any_unit">
+          <option value="km">km</option>
+          <option value="m">m</option>
+        </select>
+      </label>
+      <button type="button" id="any_add_btn">この条件でリンクを追加</button>
+      <!-- クリアボタン（入力の次） -->
+      <button type="button" id="any_clear_btn" style="background:#ef4444;">クリア</button>
+    </div>
+    <div class="note">例: 角度=90°(東), 距離=1km → A点から東に1kmの地点。クリアは入力欄と下の「任意リンク」だけ削除します。</div>
+    <ul id="arbList"></ul>
+  </div>
+  <!-- ▲ 追加ここまで -->
+
   <h3>A地点を中心とした方位・距離可視化</h3>
   <div class="note">青い矢印はTN（真北）を示します。</div>
   <svg id="directionMap" viewBox="0 0 500 500" preserveAspectRatio="xMidYMid meet"></svg>
@@ -237,7 +256,7 @@
       const val = document.getElementById('latlon'+pt).value.trim();
       if (!val) return null;
       const s = val.replace(/[()]/g,'');
-      const regex = /([北南]?)([\d\.]+)[°]?,?\s*([東西]?)([\d\.]+)[°]?/;
+      const regex = /([北南]?)([\\d\\.]+)[°]?,?\\s*([東西]?)([\\d\\.]+)[°]?/;
       const m = s.match(regex);
       if (m) {
         let lat = parseFloat(m[2]); let lon = parseFloat(m[4]);
@@ -481,12 +500,99 @@
       calculate();
     }
 
+    /* ▼ 追加：A点・方位角・距離から目的地を算出して arbList にリンクを追加 */
+    function destPoint(latDeg, lonDeg, bearingDeg, distanceKm) {
+      const R = 6371;                     // 地球半径(km)
+      const δ = distanceKm / R;           // 角距離
+      const θ = ((bearingDeg % 360) + 360) % 360 * Math.PI/180;
+      const φ1 = latDeg * Math.PI/180;
+      const λ1 = lonDeg * Math.PI/180;
+
+      const sinφ1 = Math.sin(φ1), cosφ1 = Math.cos(φ1);
+      const sinδ = Math.sin(δ),   cosδ = Math.cos(δ);
+      const sinθ = Math.sin(θ),   cosθ = Math.cos(θ);
+
+      const sinφ2 = sinφ1 * cosδ + cosφ1 * sinδ * cosθ;
+      const φ2 = Math.asin(sinφ2);
+      const y = sinθ * sinδ * cosφ1;
+      const x = cosδ - sinφ1 * sinφ2;
+      const λ2 = λ1 + Math.atan2(y, x);
+
+      const lat2 = φ2 * 180/Math.PI;
+      let lon2 = λ2 * 180/Math.PI;
+      lon2 = ((lon2 + 540) % 360) - 180; // -180..180 に正規化
+      return { lat: lat2, lon: lon2 };
+    }
+
+    function readPointA() {
+      let lat, lon;
+      if (!isDecimal) {
+        const d = readDMS('A');
+        lat = d ? d.lat : NaN; lon = d ? d.lon : NaN;
+      } else {
+        const p = readPair('A') || readDecimal('A');
+        lat = p ? p.lat : NaN; lon = p ? p.lon : NaN;
+      }
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+      return { lat, lon };
+    }
+
+    function addArbitraryLink() {
+      const A = readPointA();
+      if (!A) { showToast('A点が未入力です'); return; }
+
+      const bearing = parseFloat(document.getElementById('any_bearing').value);
+      let distVal = parseFloat(document.getElementById('any_distance').value);
+      const unit = document.getElementById('any_unit').value;
+
+      if (!Number.isFinite(bearing) || !Number.isFinite(distVal) || distVal < 0) {
+        showToast('角度・距離の入力を確認してください'); return;
+      }
+      if (unit === 'm') distVal = distVal / 1000.0; // m→km
+
+      const d = destPoint(A.lat, A.lon, bearing, distVal);
+      const normBearing = (((bearing % 360) + 360) % 360).toFixed(1);
+
+      const li = document.createElement('li');
+      li.dataset.arbitrary = '1';
+
+      const btn = document.createElement('button');
+      btn.className = 'map-link';
+      btn.type = 'button';
+      btn.textContent = `任意: 角度${normBearing}° 距離${distVal.toFixed(3)}km → マップ`;
+      btn.addEventListener('click', (e)=> openMap(e, d.lat, d.lon));
+
+      const coords = document.createElement('span');
+      coords.className = 'coords';
+      coords.textContent = `(${d.lat.toFixed(6)}, ${d.lon.toFixed(6)})`;
+
+      li.appendChild(btn);
+      li.appendChild(coords);
+      document.getElementById('arbList').appendChild(li);
+
+      showToast('任意角度のマップリンクを追加しました');
+    }
+
+    function clearArbitrary() {
+      document.getElementById('any_bearing').value = '';
+      document.getElementById('any_distance').value = '';
+      document.getElementById('any_unit').value = 'km';
+      document.querySelectorAll('#arbList li[data-arbitrary="1"]').forEach(el => el.remove());
+      showToast('任意リンクと入力欄をクリアしました');
+    }
+    /* ▲ 追加ここまで */
+
     /* 初期化 */
     window.onload=function(){
       document.getElementById('inputMode').textContent='10進入力';
       document.querySelectorAll('.decimalInput').forEach(el=>el.style.display='table-cell');
       document.querySelectorAll('.dmsInput').forEach(el=>el.style.display='none');
       parseUrlInputs();
+
+      // ▼ 追加：ボタンイベント
+      document.getElementById('any_add_btn').addEventListener('click', addArbitraryLink);
+      document.getElementById('any_clear_btn').addEventListener('click', clearArbitrary);
+      // ▲ 追加ここまで
     };
 
     /* 入力イベント連携 */
