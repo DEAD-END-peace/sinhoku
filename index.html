@@ -29,8 +29,6 @@
       font-size: 24px;
       font-weight: 600;
     }
-    
-    /* === タブUI === */
     .tab-nav {
       display: flex;
       background-color: #e9e9eb;
@@ -66,8 +64,6 @@
       from { opacity: 0; transform: translateY(5px); }
       to { opacity: 1; transform: translateY(0); }
     }
-
-    /* === テーブルと入力 === */
     table {
       width: 100%;
       border-collapse: collapse;
@@ -94,8 +90,6 @@
     }
     .dmsInput { display: none; }
     .decimalInput { display: table-cell; }
-
-    /* === ボタン === */
     button {
       margin: 0.5em 0.2em;
       padding: 0.6em 1.2em;
@@ -115,8 +109,6 @@
         color: var(--text-color);
     }
     .button-secondary:hover { background-color: #dcdce1; }
-
-    /* === 結果・ツールカード === */
     .card {
       background: var(--secondary-background);
       border: 1px solid var(--separator-color);
@@ -132,12 +124,8 @@
     ul { padding-left: 1.2em; }
     li { margin-bottom: 0.5em; }
     .map-link { text-decoration: none; color: var(--system-blue); cursor: pointer; background: transparent; border: none; padding: 0; }
-
-    /* トースト */
     #toast { visibility: hidden; min-width: 180px; max-width: 90vw; background-color: rgba(0,0,0,0.75); color: #fff; text-align: center; border-radius: 12px; padding: 12px 16px; position: fixed; z-index: 1000; bottom: 24px; left: 50%; transform: translateX(-50%); font-size: 14px; opacity: 0; transition: all 0.35s ease; }
     #toast.show { visibility: visible; opacity: 1; }
-    
-    /* モーダルは変更なし */
     .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: center; justify-content: center; z-index: 1200; }
     .modal-backdrop.show { display: flex; }
     .modal { width: min(92vw, 420px); background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.2); padding: 18px; }
@@ -161,7 +149,7 @@
     </div>
 
     <div id="tab-calc" class="tab-panel active">
-      <form onsubmit="calculateAndSwitchTab(); return false;">
+      <form onsubmit="return false;">
         <table>
           <tr>
             <th>地点</th>
@@ -171,12 +159,12 @@
             <th class="decimalInput">緯度(10進)</th>
             <th class="decimalInput">経度(10進)</th>
           </tr>
-          <tr><td>A</td><td><input id="latlonA"></td><td class="dmsInput"><input id="latA_deg" size="3">° <input id="latA_min" size="2">′ <input type="number" id="latA_sec" size="4">″</td><td class="dmsInput"><input id="lonA_deg" size="3">° <input id="lonA_min" size="2">′ <input type="number" id="lonA_sec" size="4">″</td><td class="decimalInput"><input id="latA_dec"></td><td class="decimalInput"><input id="lonA_dec"></td></tr>
+          <tr><td>A</td><td><input id="latlonA" placeholder="例: 35.68,139.76"></td><td class="dmsInput"><input id="latA_deg" size="3">° <input id="latA_min" size="2">′ <input type="number" id="latA_sec" size="4">″</td><td class="dmsInput"><input id="lonA_deg" size="3">° <input id="lonA_min" size="2">′ <input type="number" id="lonA_sec" size="4">″</td><td class="decimalInput"><input id="latA_dec"></td><td class="decimalInput"><input id="lonA_dec"></td></tr>
           <tr><td>B</td><td><input id="latlonB"></td><td class="dmsInput"><input id="latB_deg" size="3">° <input id="latB_min" size="2">′ <input type="number" id="latB_sec" size="4">″</td><td class="dmsInput"><input id="lonB_deg" size="3">° <input id="lonB_min" size="2">′ <input type="number" id="lonB_sec" size="4">″</td><td class="decimalInput"><input id="latB_dec"></td><td class="decimalInput"><input id="lonB_dec"></td></tr>
           <tr><td>C</td><td><input id="latlonC"></td><td class="dmsInput"><input id="latC_deg" size="3">° <input id="latC_min" size="2">′ <input type="number" id="latC_sec" size="4">″</td><td class="dmsInput"><input id="lonC_deg" size="3">° <input id="lonC_min" size="2">′ <input type="number" id="lonC_sec" size="4">″</td><td class="decimalInput"><input id="latC_dec"></td><td class="decimalInput"><input id="lonC_dec"></td></tr>
           <tr><td>D</td><td><input id="latlonD"></td><td class="dmsInput"><input id="latD_deg" size="3">° <input id="latD_min" size="2">′ <input type="number" id="latD_sec" size="4">″</td><td class="dmsInput"><input id="lonD_deg" size="3">° <input id="lonD_min" size="2">′ <input type="number" id="lonD_sec" size="4">″</td><td class="decimalInput"><input id="latD_dec"></td><td class="decimalInput"><input id="lonD_dec"></td></tr>
         </table>
-        <button type="submit" class="button-primary">計算して結果を表示</button>
+        <button type="button" class="button-primary" onclick="switchToResultsTab()">結果</button>
         <button type="button" id="getLocationBtn" class="button-secondary" style="background-color: #4CAF50; color: white;">現在地をAに設定🌍</button>
         <button type="button" onclick="toggleInputMode()" class="button-secondary">入力モード切替: <span id="inputMode">10進入力</span></button>
       </form>
@@ -190,6 +178,7 @@
       <div class="card">
         <h3>マップで開く</h3>
         <div id="mapLinks"></div>
+        <ul id="mapLinksArb"></ul>
       </div>
        <div class="card">
         <h3>A地点を中心とした方位・距離</h3>
@@ -237,7 +226,7 @@
     function setDecimal(pt, lat, lon){ document.getElementById('lat'+pt+'_dec').value = Number.isFinite(lat)? lat.toFixed(6) : ''; document.getElementById('lon'+pt+'_dec').value = Number.isFinite(lon)? lon.toFixed(6) : ''; }
     function decimalToDMS(val){ if (!Number.isFinite(val)) return {deg:'',min:'',sec:''}; const sign = val < 0 ? -1 : 1; const abs = Math.abs(val); const deg = Math.trunc(abs) * sign; const minFloat = (abs - Math.trunc(abs)) * 60; const min = Math.trunc(minFloat); const sec = ((minFloat - min) * 60).toFixed(2); return {deg, min, sec}; }
     function setDMSFromDecimal(pt, lat, lon){ const La = decimalToDMS(lat), Lo = decimalToDMS(lon); document.getElementById('lat'+pt+'_deg').value = La.deg; document.getElementById('lat'+pt+'_min').value = La.min; document.getElementById('lat'+pt+'_sec').value = La.sec; document.getElementById('lon'+pt+'_deg').value = Lo.deg; document.getElementById('lon'+pt+'_min').value = Lo.min; document.getElementById('lon'+pt+'_sec').value = Lo.sec; }
-    function calculate() { const pts=['A','B','C','D'], coords={}, parts=[]; let mapHtml = '<ul>'; pts.forEach(pt => { let lat, lon; if (!isDecimal) { const d = readDMS(pt); lat = d? d.lat : NaN; lon = d? d.lon : NaN; } else { const p = readPair(pt) || readDecimal(pt); lat = p? p.lat : NaN; lon = p? p.lon : NaN; } if(Number.isFinite(lat) && Number.isFinite(lon)) parts.push(`${lat},${lon}`); coords[pt] = [lat, lon]; const disabled = (!Number.isFinite(lat) || !Number.isFinite(lon)); const link = disabled ? `<span>${pt}点: -</span>` : `<button type="button" class="map-link" onclick="openMap(event, ${lat}, ${lon})">${pt}点: マップで開く</button>`; mapHtml += `<li>${link}</li>`; }); document.getElementById('mapLinks').innerHTML = mapHtml + '</ul>'; let tbl = '<table><tr><th>区間</th><th>方位角</th><th>距離(km)</th></tr>', viz = []; const validPts = ['B','C','D'].filter(pt => Number.isFinite(coords[pt][0]) && Number.isFinite(coords[pt][1]) && Number.isFinite(coords.A[0]) && Number.isFinite(coords.A[1])); validPts.forEach(pt => { const [a1,b1] = coords.A, [a2,b2] = coords[pt]; const r = calc(a1,b1,a2,b2); tbl += `<tr><td>A→${pt}</td><td>${r.dms}</td><td>${r.dist.toFixed(3)}</td></tr>`; viz.push({ label:pt, decimal:r.decimal, dms:r.dms, dist:r.dist }); }); document.getElementById('results').innerHTML = tbl + '</table>'; drawViz(viz); const base = location.origin + location.pathname.replace(/\/[^/]*$/, '/'); document.getElementById('shareURL').value = `${base}?location=${parts.join('-')}`; }
+    function calculate() { const pts=['A','B','C','D'], coords={}, parts=[]; let mapHtml = '<ul>'; pts.forEach(pt => { let lat, lon; if (!isDecimal) { const d = readDMS(pt); lat = d? d.lat : NaN; lon = d? d.lon : NaN; } else { const p = readPair(pt) || readDecimal(pt); lat = p? p.lat : NaN; lon = p? p.lon : NaN; } if(Number.isFinite(lat) && Number.isFinite(lon)) parts.push(`${lat.toFixed(6)},${lon.toFixed(6)}`); coords[pt] = [lat, lon]; const disabled = (!Number.isFinite(lat) || !Number.isFinite(lon)); const link = disabled ? `<span>${pt}点: -</span>` : `<button type="button" class="map-link" onclick="openMap(event, ${lat}, ${lon})">${pt}点: マップで開く</button>`; mapHtml += `<li>${link}</li>`; }); document.getElementById('mapLinks').innerHTML = mapHtml + '</ul>'; let tbl = '<table><tr><th>区間</th><th>方位角</th><th>距離(km)</th></tr>', viz = []; const validPts = ['B','C','D'].filter(pt => Number.isFinite(coords[pt][0]) && Number.isFinite(coords[pt][1]) && Number.isFinite(coords.A[0]) && Number.isFinite(coords.A[1])); validPts.forEach(pt => { const [a1,b1] = coords.A, [a2,b2] = coords[pt]; const r = calc(a1,b1,a2,b2); tbl += `<tr><td>A→${pt}</td><td>${r.dms}</td><td>${r.dist.toFixed(3)}</td></tr>`; viz.push({ label:pt, decimal:r.decimal, dms:r.dms, dist:r.dist }); }); document.getElementById('results').innerHTML = tbl + '</table>'; drawViz(viz); const base = location.origin + location.pathname.replace(/\/[^/]*$/, '/'); document.getElementById('shareURL').value = `${base}?location=${parts.join('-')}`; }
     function calc(lat1, lon1, lat2, lon2) { const R = 6371; const φ1 = toRad(lat1), φ2 = toRad(lat2), Δλ = toRad(lon2 - lon1); const y = Math.sin(Δλ)*Math.cos(φ2); const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ); const dec = (Math.atan2(y,x)*180/Math.PI + 360) % 360; const deg = Math.floor(dec), min = Math.floor((dec-deg)*60), sec = (((dec-deg)*60-min)*60).toFixed(1); const dms = `${deg}°${min}′${sec}″`; const a = Math.sin((φ2-φ1)/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2; const dist = R * 2 * Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); return { decimal:dec, dms, dist }; }
     function toRad(d) { return d*Math.PI/180; }
     let pendingCoord = null; const backdrop = document.getElementById('mapPickerBackdrop'); const btnApple = document.getElementById('btnApple'); const btnGoogle = document.getElementById('btnGoogle'); const btnClosePicker = document.getElementById('btnClosePicker');
@@ -246,30 +235,8 @@
     backdrop.addEventListener('click', (e)=>{ if(e.target === backdrop) closePicker(); });
     btnClosePicker.addEventListener('click', closePicker);
     btnApple.addEventListener('click', ()=>{ if(!pendingCoord) return; const {lat, lon} = pendingCoord; const aHttp = `https://maps.apple.com/?q=${lat},${lon}`; openExternal(aHttp); closePicker(); });
-    
-    // ▼▼▼【変更】GoogleマップのURLを正しい形式に完全に修正しました ▼▼▼
-    btnGoogle.addEventListener('click', ()=>{
-      if(!pendingCoord) return;
-      const {lat, lon} = pendingCoord;
-      openExternal(`https://www.google.com/maps?q=${lat},${lon}`);
-      closePicker();
-    });
-
-    function openMap(e, lat, lon){
-      if (e) e.preventDefault();
-      const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
-      if (isAndroid()) {
-        openExternal(googleMapsUrl);
-        return;
-      }
-      if (isAppleMobile()) {
-        openPicker(lat, lon);
-        return;
-      }
-      openExternal(googleMapsUrl);
-    }
-    // ▲▲▲ 変更ここまで ▲▲▲
-
+    btnGoogle.addEventListener('click', ()=>{ if(!pendingCoord) return; const {lat, lon} = pendingCoord; openExternal(`https://www.google.com/maps?q=${lat},${lon}`); closePicker(); });
+    function openMap(e, lat, lon){ if (e) e.preventDefault(); const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lon}`; if (isAndroid()) { openExternal(googleMapsUrl); return; } if (isAppleMobile()) { openPicker(lat, lon); return; } openExternal(googleMapsUrl); }
     async function generateShareURL() { calculate(); const url = document.getElementById('shareURL').value; const btn = document.getElementById('shareBtn'); try { await copyText(url); showToast('共有URLをコピーしました'); } catch (e) { showToast('コピーに失敗しました'); } }
     async function copyText(text) { if (!text) throw new Error('empty'); if (navigator.clipboard) { await navigator.clipboard.writeText(text); return; } const ta = document.createElement('textarea'); ta.value = text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
     function showToast(msg) { const toast = document.getElementById('toast'); toast.textContent = msg; toast.classList.add('show'); clearTimeout(showToast._timer); showToast._timer = setTimeout(() => { toast.classList.remove('show'); }, 2000); }
@@ -277,33 +244,75 @@
     function parseUrlInputs() { const params=new URLSearchParams(window.location.search); const loc=params.get('location')||''; const pairs=loc.split('-'); PTS.forEach((pt,i)=>{ if(pairs[i]){ document.getElementById('latlon'+pt).value=pairs[i]; const [la,lo]=pairs[i].split(',').map(s=>s.trim()); const lat=parseFloat(la), lon=parseFloat(lo); if (Number.isFinite(lat) && Number.isFinite(lon)) { setDecimal(pt, lat, lon); setDMSFromDecimal(pt, lat, lon); } } }); calculate(); }
     function destPoint(latDeg, lonDeg, bearingDeg, distanceKm) { const R = 6371; const δ = distanceKm / R; const θ = ((bearingDeg % 360) + 360) % 360 * Math.PI/180; const φ1 = latDeg * Math.PI/180; const λ1 = lonDeg * Math.PI/180; const sinφ1 = Math.sin(φ1), cosφ1 = Math.cos(φ1); const sinδ = Math.sin(δ), cosδ = Math.cos(δ); const sinθ = Math.sin(θ), cosθ = Math.cos(θ); const sinφ2 = sinφ1 * cosδ + cosφ1 * sinδ * cosθ; const φ2 = Math.asin(sinφ2); const y = sinθ * sinδ * cosφ1; const x = cosδ - sinφ1 * sinφ2; const λ2 = λ1 + Math.atan2(y, x); const lat2 = φ2 * 180/Math.PI; let lon2 = λ2 * 180/Math.PI; lon2 = ((lon2 + 540) % 360) - 180; return { lat: lat2, lon: lon2 }; }
     function readPointA() { let lat, lon; if (!isDecimal) { const d = readDMS('A'); lat = d ? d.lat : NaN; lon = d ? d.lon : NaN; } else { const p = readPair('A') || readDecimal('A'); lat = p ? p.lat : NaN; lon = p ? p.lon : NaN; } if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null; return { lat, lon }; }
-    function addArbitraryLink() { const A = readPointA(); if (!A) { showToast('A点が未入力です'); return; } const bearing = parseFloat(document.getElementById('any_bearing').value); let distVal = parseFloat(document.getElementById('any_distance').value); const unit = document.getElementById('any_unit').value; if (!Number.isFinite(bearing) || !Number.isFinite(distVal) || distVal < 0) { showToast('角度・距離の入力を確認してください'); return; } if (unit === 'm') distVal /= 1000.0; const d = destPoint(A.lat, A.lon, bearing, distVal); const normBearing = (((bearing % 360) + 360) % 360).toFixed(1); const li = document.createElement('li'); li.dataset.arbitrary = '1'; const btn = document.createElement('button'); btn.className = 'map-link'; btn.type = 'button'; btn.textContent = `角度${normBearing}° 距離${distVal.toFixed(3)}km → マップで開く`; btn.addEventListener('click', (e)=> openMap(e, d.lat, d.lon)); li.appendChild(btn); document.getElementById('arbList').appendChild(li); showToast('任意地点のマップリンクを追加しました'); }
-    function clearArbitrary() { document.getElementById('any_bearing').value = ''; document.getElementById('any_distance').value = ''; document.getElementById('any_unit').value = 'km'; document.querySelectorAll('#arbList li').forEach(el => el.remove()); showToast('任意リンクをクリアしました'); }
+    
+    function addArbitraryLink() {
+        const A = readPointA();
+        if (!A) {
+            showToast('A点が未入力です');
+            return;
+        }
+        const bearing = parseFloat(document.getElementById('any_bearing').value);
+        let distVal = parseFloat(document.getElementById('any_distance').value);
+        const unit = document.getElementById('any_unit').value;
+        if (!Number.isFinite(bearing) || !Number.isFinite(distVal) || distVal < 0) {
+            showToast('角度・距離の入力を確認してください');
+            return;
+        }
+        if (unit === 'm') distVal /= 1000.0;
+        const d = destPoint(A.lat, A.lon, bearing, distVal);
+        const normBearing = (((bearing % 360) + 360) % 360).toFixed(1);
+        const labelText = `角度${normBearing}° 距離${distVal.toFixed(3)}km`;
+
+        const createLink = (lat, lon) => {
+            const li = document.createElement('li');
+            const btn = document.createElement('button');
+            btn.className = 'map-link';
+            btn.type = 'button';
+            btn.textContent = `${labelText} → マップで開く`;
+            btn.addEventListener('click', (e) => openMap(e, lat, lon));
+            li.appendChild(btn);
+            return li;
+        };
+        
+        document.getElementById('arbList').appendChild(createLink(d.lat, d.lon));
+        document.getElementById('mapLinksArb').appendChild(createLink(d.lat, d.lon));
+        showToast('任意地点のマップリンクを追加しました');
+    }
+
+    function clearArbitrary() {
+        document.getElementById('any_bearing').value = '';
+        document.getElementById('any_distance').value = '';
+        document.getElementById('any_unit').value = 'km';
+        document.getElementById('arbList').innerHTML = '';
+        document.getElementById('mapLinksArb').innerHTML = '';
+        showToast('任意リンクをクリアしました');
+    }
     
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabPanels = document.querySelectorAll('.tab-panel');
-
     tabButtons.forEach(button => {
       button.addEventListener('click', () => {
         tabButtons.forEach(btn => btn.classList.remove('active'));
         button.classList.add('active');
-        
         tabPanels.forEach(panel => panel.classList.remove('active'));
         document.getElementById(button.dataset.tab).classList.add('active');
       });
     });
 
-    function calculateAndSwitchTab() {
-        calculate();
+    function switchToResultsTab() {
         document.querySelector('.tab-button[data-tab="tab-results"]').click();
     }
 
     window.onload=function(){
       parseUrlInputs();
+      
       document.getElementById('any_add_btn').addEventListener('click', addArbitraryLink);
       document.getElementById('any_clear_btn').addEventListener('click', clearArbitrary);
       document.getElementById('getLocationBtn').addEventListener('click', function() { if (navigator.geolocation) { navigator.geolocation.getCurrentPosition( function(position) { const lat = position.coords.latitude; const lon = position.coords.longitude; setPair('A', lat, lon); setDecimal('A', lat, lon); setDMSFromDecimal('A', lat, lon); calculate(); showToast('現在地をAに設定しました'); }, function(error) { let msg = "位置情報の取得に失敗"; switch(error.code) { case 1: msg = "位置情報の利用が許可されていません"; break; case 2: msg = "位置情報を取得できませんでした"; break; case 3: msg = "タイムアウトしました"; break; } showToast(msg); } ); } else { showToast('ブラウザが位置情報取得に非対応です'); } });
+       // ページロード時に一度計算を実行して、空の結果表示を初期化
+      calculate();
     };
+    
     PTS.forEach(pt=>{ document.getElementById('latlon'+pt).addEventListener('input',()=>{ const p = readPair(pt); if (p){ setDecimal(pt, p.lat, p.lon); setDMSFromDecimal(pt, p.lat, p.lon); calculate(); } }); ['lat','lon'].forEach(kind=>{ document.getElementById(kind+pt+'_dec').addEventListener('input',()=>{ const dec = readDecimal(pt); if (dec){ setPair(pt, dec.lat, dec.lon); setDMSFromDecimal(pt, dec.lat, dec.lon); calculate(); } }); }); [['lat','deg'],['lat','min'],['lat','sec'],['lon','deg'],['lon','min'],['lon','sec']].forEach(([k,s])=>{ document.getElementById(k+pt+'_'+s).addEventListener('input',()=>{ const d = readDMS(pt); if (d){ setDecimal(pt, d.lat, d.lon); setPair(pt, d.lat, d.lon); calculate(); } }); }); });
   </script>
 </body>
