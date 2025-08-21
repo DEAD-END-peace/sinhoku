@@ -177,7 +177,7 @@
           <tr><td>D</td><td><input id="latlonD"></td><td class="dmsInput"><input id="latD_deg" size="3">° <input id="latD_min" size="2">′ <input type="number" id="latD_sec" size="4">″</td><td class="dmsInput"><input id="lonD_deg" size="3">° <input id="lonD_min" size="2">′ <input type="number" id="lonD_sec" size="4">″</td><td class="decimalInput"><input id="latD_dec"></td><td class="decimalInput"><input id="lonD_dec"></td></tr>
         </table>
         <button type="submit" class="button-primary">計算して結果を表示</button>
-        <button type="button" id="getLocationBtn" class="button-secondary">現在地をAに設定📍</button>
+        <button type="button" id="getLocationBtn" class="button-secondary" style="background-color: #4CAF50; color: white;">現在地をAに設定🌍</button>
         <button type="button" onclick="toggleInputMode()" class="button-secondary">入力モード切替: <span id="inputMode">10進入力</span></button>
       </form>
     </div>
@@ -240,12 +240,40 @@
     function calculate() { const pts=['A','B','C','D'], coords={}, parts=[]; let mapHtml = '<ul>'; pts.forEach(pt => { let lat, lon; if (!isDecimal) { const d = readDMS(pt); lat = d? d.lat : NaN; lon = d? d.lon : NaN; } else { const p = readPair(pt) || readDecimal(pt); lat = p? p.lat : NaN; lon = p? p.lon : NaN; } if(Number.isFinite(lat) && Number.isFinite(lon)) parts.push(`${lat},${lon}`); coords[pt] = [lat, lon]; const disabled = (!Number.isFinite(lat) || !Number.isFinite(lon)); const link = disabled ? `<span>${pt}点: -</span>` : `<button type="button" class="map-link" onclick="openMap(event, ${lat}, ${lon})">${pt}点: マップで開く</button>`; mapHtml += `<li>${link}</li>`; }); document.getElementById('mapLinks').innerHTML = mapHtml + '</ul>'; let tbl = '<table><tr><th>区間</th><th>方位角</th><th>距離(km)</th></tr>', viz = []; const validPts = ['B','C','D'].filter(pt => Number.isFinite(coords[pt][0]) && Number.isFinite(coords[pt][1]) && Number.isFinite(coords.A[0]) && Number.isFinite(coords.A[1])); validPts.forEach(pt => { const [a1,b1] = coords.A, [a2,b2] = coords[pt]; const r = calc(a1,b1,a2,b2); tbl += `<tr><td>A→${pt}</td><td>${r.dms}</td><td>${r.dist.toFixed(3)}</td></tr>`; viz.push({ label:pt, decimal:r.decimal, dms:r.dms, dist:r.dist }); }); document.getElementById('results').innerHTML = tbl + '</table>'; drawViz(viz); const base = location.origin + location.pathname.replace(/\/[^/]*$/, '/'); document.getElementById('shareURL').value = `${base}?location=${parts.join('-')}`; }
     function calc(lat1, lon1, lat2, lon2) { const R = 6371; const φ1 = toRad(lat1), φ2 = toRad(lat2), Δλ = toRad(lon2 - lon1); const y = Math.sin(Δλ)*Math.cos(φ2); const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ); const dec = (Math.atan2(y,x)*180/Math.PI + 360) % 360; const deg = Math.floor(dec), min = Math.floor((dec-deg)*60), sec = (((dec-deg)*60-min)*60).toFixed(1); const dms = `${deg}°${min}′${sec}″`; const a = Math.sin((φ2-φ1)/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2; const dist = R * 2 * Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); return { decimal:dec, dms, dist }; }
     function toRad(d) { return d*Math.PI/180; }
-    let pendingCoord = null; const backdrop = document.getElementById('mapPickerBackdrop'); const btnApple = document.getElementById('btnApple'); const btnGoogle = document.getElementById('btnGoogle'); const btnClosePicker = document.getElementById('btnClosePicker'); function openPicker(lat, lon){ pendingCoord = {lat, lon}; backdrop.classList.add('show'); backdrop.setAttribute('aria-hidden','false'); } function closePicker(){ backdrop.classList.remove('show'); backdrop.setAttribute('aria-hidden','true'); pendingCoord = null; } backdrop.addEventListener('click', (e)=>{ if(e.target === backdrop) closePicker(); }); btnClosePicker.addEventListener('click', closePicker); btnApple.addEventListener('click', ()=>{ if(!pendingCoord) return; const {lat, lon} = pendingCoord; const aHttp = `https://maps.apple.com/?q=${lat},${lon}`; openExternal(aHttp); closePicker(); }); btnGoogle.addEventListener('click', ()=>{ if(!pendingCoord) return; const {lat, lon} = pendingCoord; openExternal(`http://googleusercontent.com/maps/google/0{lat},${lon}`); closePicker(); });
-    function openMap(e, lat, lon){ if (e) e.preventDefault(); if (isAndroid()) { openExternal(`http://googleusercontent.com/maps/google/0{lat},${lon}`); return; } if (isAppleMobile()) { openPicker(lat, lon); return; } openExternal(`http://googleusercontent.com/maps/google/0{lat},${lon}`); }
+    let pendingCoord = null; const backdrop = document.getElementById('mapPickerBackdrop'); const btnApple = document.getElementById('btnApple'); const btnGoogle = document.getElementById('btnGoogle'); const btnClosePicker = document.getElementById('btnClosePicker');
+    function openPicker(lat, lon){ pendingCoord = {lat, lon}; backdrop.classList.add('show'); backdrop.setAttribute('aria-hidden','false'); }
+    function closePicker(){ backdrop.classList.remove('show'); backdrop.setAttribute('aria-hidden','true'); pendingCoord = null; }
+    backdrop.addEventListener('click', (e)=>{ if(e.target === backdrop) closePicker(); });
+    btnClosePicker.addEventListener('click', closePicker);
+    btnApple.addEventListener('click', ()=>{ if(!pendingCoord) return; const {lat, lon} = pendingCoord; const aHttp = `https://maps.apple.com/?q=${lat},${lon}`; openExternal(aHttp); closePicker(); });
+    
+    // ▼▼▼【変更】GoogleマップのURLを正しい形式に完全に修正しました ▼▼▼
+    btnGoogle.addEventListener('click', ()=>{
+      if(!pendingCoord) return;
+      const {lat, lon} = pendingCoord;
+      openExternal(`https://www.google.com/maps?q=${lat},${lon}`);
+      closePicker();
+    });
+
+    function openMap(e, lat, lon){
+      if (e) e.preventDefault();
+      const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+      if (isAndroid()) {
+        openExternal(googleMapsUrl);
+        return;
+      }
+      if (isAppleMobile()) {
+        openPicker(lat, lon);
+        return;
+      }
+      openExternal(googleMapsUrl);
+    }
+    // ▲▲▲ 変更ここまで ▲▲▲
+
     async function generateShareURL() { calculate(); const url = document.getElementById('shareURL').value; const btn = document.getElementById('shareBtn'); try { await copyText(url); showToast('共有URLをコピーしました'); } catch (e) { showToast('コピーに失敗しました'); } }
     async function copyText(text) { if (!text) throw new Error('empty'); if (navigator.clipboard) { await navigator.clipboard.writeText(text); return; } const ta = document.createElement('textarea'); ta.value = text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
     function showToast(msg) { const toast = document.getElementById('toast'); toast.textContent = msg; toast.classList.add('show'); clearTimeout(showToast._timer); showToast._timer = setTimeout(() => { toast.classList.remove('show'); }, 2000); }
-    function drawViz(data) { const svg = document.getElementById('directionMap'); while(svg.firstChild) svg.removeChild(svg.firstChild); const valid = data.filter(p => !isNaN(p.dist)); if(!valid.length) return; const cx=250, cy=250; let el = document.createElementNS('http://www.w3.org/2000/svg','circle'); el.setAttribute('cx',cx); el.setAttribute('cy',cy); el.setAttribute('r',8); el.setAttribute('fill','blue'); svg.appendChild(el); el = document.createElementNS('http://www.w3.org/2000/svg','text'); el.setAttribute('x',cx+12); el.setAttribute('y',cy-12); el.setAttribute('font-size','14px'); el.setAttribute('font-weight','bold'); el.textContent='A'; svg.appendChild(el); const arrow = document.createElementNS('http://www.w3.org/2000/svg','line'); arrow.setAttribute('x1',cx); arrow.setAttribute('y1',cy); arrow.setAttribute('x2',cx); arrow.setAttribute('y2',cy-220); arrow.setAttribute('stroke','blue'); arrow.setAttribute('stroke-width',2); svg.appendChild(arrow); el = document.createElementNS('http://www.w3.org/2000/svg','polygon'); el.setAttribute('points',`${cx-10},${cy-210} ${cx+10},${cy-210} ${cx},${cy-220}`); el.setAttribute('fill','blue'); svg.appendChild(el); const colors={B:'red',C:'green',D:'orange'}; const maxD=Math.max(...valid.map(p=>p.dist)); valid.forEach(p=>{ const rad=p.decimal*Math.PI/180, r=200*(p.dist/maxD), x=cx+Math.sin(rad)*r, y=cy-Math.cos(rad)*r; let ln=document.createElementNS('http://www.w3.org/2000/svg','line'); ln.setAttribute('x1',cx); ln.setAttribute('y1',cy); ln.setAttribute('x2',x); ln.setAttribute('y2',y); ln.setAttribute('stroke','#888'); svg.appendChild(ln); let dot=document.createElementNS('http://www.w3.org/2000/svg','circle'); dot.setAttribute('cx',x); dot.setAttribute('cy',y); dot.setAttribute('r',5); dot.setAttribute('fill',colors[p.label]); svg.appendChild(dot); let lbl=document.createElementNS('http://www.w3.org/2000/svg','text'); lbl.setAttribute('x',x+10); lbl.setAttribute('y',y+5); lbl.setAttribute('font-size','12px'); lbl.setAttribute('fill',colors[p.label]); lbl.textContent=`${p.label}: ${p.dms} (${p.dist.toFixed(2)}km)`; svg.appendChild(lbl); }); }
+    function drawViz(data) { const svg = document.getElementById('directionMap'); while(svg.firstChild) svg.removeChild(svg.firstChild); const valid = data.filter(p => !isNaN(p.dist)); if(!valid.length) return; const cx=250, cy=250; let el = document.createElementNS('http://www.w3.org/2000/svg','circle'); el.setAttribute('cx',cx); el.setAttribute('cy',cy); el.setAttribute('r',8); el.setAttribute('fill','blue'); svg.appendChild(el); el = document.createElementNS('http://www.w3.org/2000/svg','text'); el.setAttribute('x',cx+12); el.setAttribute('y',cy-12); el.setAttribute('font-size','14px'); el.setAttribute('font-weight','bold'); el.textContent='A'; svg.appendChild(el); const arrow = document.createElementNS('http://www.w3.org/2000/svg','line'); arrow.setAttribute('x1',cx); arrow.setAttribute('y1',cy); arrow.setAttribute('x2',cx); arrow.setAttribute('y2',cy-220); arrow.setAttribute('stroke','blue'); arrow.setAttribute('stroke-width',2); svg.appendChild(arrow); el = document.createElementNS('http://www.w3.org/2000/svg','polygon'); el.setAttribute('points',`${cx-10},${cy-210} ${cx+10},${cy-210} ${cx},${cy-220}`); el.setAttribute('fill','blue'); svg.appendChild(el); const colors={B:'red',C:'green',D:'orange'}; const maxD=Math.max(...valid.map(p=>p.dist)); valid.forEach(p=>{ const rad=p.decimal*Math.PI/180, r= maxD > 0 ? 200*(p.dist/maxD) : 0, x=cx+Math.sin(rad)*r, y=cy-Math.cos(rad)*r; let ln=document.createElementNS('http://www.w3.org/2000/svg','line'); ln.setAttribute('x1',cx); ln.setAttribute('y1',cy); ln.setAttribute('x2',x); ln.setAttribute('y2',y); ln.setAttribute('stroke','#888'); svg.appendChild(ln); let dot=document.createElementNS('http://www.w3.org/2000/svg','circle'); dot.setAttribute('cx',x); dot.setAttribute('cy',y); dot.setAttribute('r',5); dot.setAttribute('fill',colors[p.label]); svg.appendChild(dot); let lbl=document.createElementNS('http://www.w3.org/2000/svg','text'); lbl.setAttribute('x',x+10); lbl.setAttribute('y',y+5); lbl.setAttribute('font-size','12px'); lbl.setAttribute('fill',colors[p.label]); lbl.textContent=`${p.label}: ${p.dms} (${p.dist.toFixed(2)}km)`; svg.appendChild(lbl); }); }
     function parseUrlInputs() { const params=new URLSearchParams(window.location.search); const loc=params.get('location')||''; const pairs=loc.split('-'); PTS.forEach((pt,i)=>{ if(pairs[i]){ document.getElementById('latlon'+pt).value=pairs[i]; const [la,lo]=pairs[i].split(',').map(s=>s.trim()); const lat=parseFloat(la), lon=parseFloat(lo); if (Number.isFinite(lat) && Number.isFinite(lon)) { setDecimal(pt, lat, lon); setDMSFromDecimal(pt, lat, lon); } } }); calculate(); }
     function destPoint(latDeg, lonDeg, bearingDeg, distanceKm) { const R = 6371; const δ = distanceKm / R; const θ = ((bearingDeg % 360) + 360) % 360 * Math.PI/180; const φ1 = latDeg * Math.PI/180; const λ1 = lonDeg * Math.PI/180; const sinφ1 = Math.sin(φ1), cosφ1 = Math.cos(φ1); const sinδ = Math.sin(δ), cosδ = Math.cos(δ); const sinθ = Math.sin(θ), cosθ = Math.cos(θ); const sinφ2 = sinφ1 * cosδ + cosφ1 * sinδ * cosθ; const φ2 = Math.asin(sinφ2); const y = sinθ * sinδ * cosφ1; const x = cosδ - sinφ1 * sinφ2; const λ2 = λ1 + Math.atan2(y, x); const lat2 = φ2 * 180/Math.PI; let lon2 = λ2 * 180/Math.PI; lon2 = ((lon2 + 540) % 360) - 180; return { lat: lat2, lon: lon2 }; }
     function readPointA() { let lat, lon; if (!isDecimal) { const d = readDMS('A'); lat = d ? d.lat : NaN; lon = d ? d.lon : NaN; } else { const p = readPair('A') || readDecimal('A'); lat = p ? p.lat : NaN; lon = p ? p.lon : NaN; } if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null; return { lat, lon }; }
@@ -265,13 +293,10 @@
       });
     });
 
-    // ▼▼▼【変更】この関数を修正しました ▼▼▼
     function calculateAndSwitchTab() {
         calculate();
-        // 正しく「結果」タブを表示するように修正
         document.querySelector('.tab-button[data-tab="tab-results"]').click();
     }
-    // ▲▲▲ 変更ここまで ▲▲▲
 
     window.onload=function(){
       parseUrlInputs();
