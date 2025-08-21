@@ -159,7 +159,7 @@
             <th class="decimalInput">緯度(10進)</th>
             <th class="decimalInput">経度(10進)</th>
           </tr>
-          <tr><td>A</td><td><input id="latlonA" placeholder="例: 35.68,139.76"></td><td class="dmsInput"><input id="latA_deg" size="3">° <input id="latA_min" size="2">′ <input type="number" id="latA_sec" size="4">″</td><td class="dmsInput"><input id="lonA_deg" size="3">° <input id="lonA_min" size="2">′ <input type="number" id="lonA_sec" size="4">″</td><td class="decimalInput"><input id="latA_dec"></td><td class="decimalInput"><input id="lonA_dec"></td></tr>
+          <tr><td>A</td><td><input id="latlonA" placeholder="例: 北33.3°, 東130.5°"></td><td class="dmsInput"><input id="latA_deg" size="3">° <input id="latA_min" size="2">′ <input type="number" id="latA_sec" size="4">″</td><td class="dmsInput"><input id="lonA_deg" size="3">° <input id="lonA_min" size="2">′ <input type="number" id="lonA_sec" size="4">″</td><td class="decimalInput"><input id="latA_dec"></td><td class="decimalInput"><input id="lonA_dec"></td></tr>
           <tr><td>B</td><td><input id="latlonB"></td><td class="dmsInput"><input id="latB_deg" size="3">° <input id="latB_min" size="2">′ <input type="number" id="latB_sec" size="4">″</td><td class="dmsInput"><input id="lonB_deg" size="3">° <input id="lonB_min" size="2">′ <input type="number" id="lonB_sec" size="4">″</td><td class="decimalInput"><input id="latB_dec"></td><td class="decimalInput"><input id="lonB_dec"></td></tr>
           <tr><td>C</td><td><input id="latlonC"></td><td class="dmsInput"><input id="latC_deg" size="3">° <input id="latC_min" size="2">′ <input type="number" id="latC_sec" size="4">″</td><td class="dmsInput"><input id="lonC_deg" size="3">° <input id="lonC_min" size="2">′ <input type="number" id="lonC_sec" size="4">″</td><td class="decimalInput"><input id="latC_dec"></td><td class="decimalInput"><input id="lonC_dec"></td></tr>
           <tr><td>D</td><td><input id="latlonD"></td><td class="dmsInput"><input id="latD_deg" size="3">° <input id="latD_min" size="2">′ <input type="number" id="latD_sec" size="4">″</td><td class="dmsInput"><input id="lonD_deg" size="3">° <input id="lonD_min" size="2">′ <input type="number" id="lonD_sec" size="4">″</td><td class="decimalInput"><input id="latD_dec"></td><td class="decimalInput"><input id="lonD_dec"></td></tr>
@@ -218,7 +218,41 @@
     function isAndroid(){ return /Android/i.test(navigator.userAgent || ''); }
     function openExternal(url) { if (isAppleMobile()) { window.location.assign(url); } else { window.open(url, '_blank', 'noopener'); } }
     function toggleInputMode() { isDecimal = !isDecimal; document.getElementById('inputMode').textContent = isDecimal ? '10進入力' : '60進入力'; document.querySelectorAll('.decimalInput').forEach(el => el.style.display = isDecimal ? 'table-cell' : 'none'); document.querySelectorAll('.dmsInput').forEach(el => el.style.display = isDecimal ? 'none' : 'table-cell'); PTS.forEach(pt => { const pair = readPair(pt); if (pair && Number.isFinite(pair.lat) && Number.isFinite(pair.lon)) { setDecimal(pt, pair.lat, pair.lon); setDMSFromDecimal(pt, pair.lat, pair.lon); } else { const dec = readDecimal(pt); if (dec) { setPair(pt, dec.lat, dec.lon); setDMSFromDecimal(pt, dec.lat, dec.lon); } else { const dms = readDMS(pt); if (dms) { setDecimal(pt, dms.lat, dms.lon); setPair(pt, dms.lat, dms.lon); } } } }); calculate(); }
-    function readPair(pt){ const val = document.getElementById('latlon'+pt).value.trim(); if (!val) return null; const s = val.replace(/[()]/g,''); const regex = /([北南]?)([\\d\\.]+)[°]?,?\\s*([東西]?)([\\d\\.]+)[°]?/; const m = s.match(regex); if (m) { let lat = parseFloat(m[2]); let lon = parseFloat(m[4]); if (m[1] === '南') lat *= -1; if (m[3] === '西') lon *= -1; return {lat, lon}; } const arr = s.split(',').map(v=>parseFloat(v)); if (arr.length===2 && Number.isFinite(arr[0]) && Number.isFinite(arr[1])) return {lat:arr[0], lon:arr[1]}; return null; }
+    
+    function readPair(pt) {
+        const val = document.getElementById('latlon' + pt).value.trim();
+        if (!val) return null;
+
+        const s = val.replace(/^\s*\(|\)\s*$/g, '');
+
+        const flexibleRegex = /([NS北南])?\s*([\d\.]+)\s*[°度]?\s*([NS北南])?\s*[,、\s]+\s*([EW東西])?\s*([\d\.]+)\s*[°度]?\s*([EW東西])?/i;
+        const match = s.match(flexibleRegex);
+
+        if (match) {
+            let lat = parseFloat(match[2]);
+            let lon = parseFloat(match[5]);
+
+            const latDir = match[1] || match[3];
+            if (latDir && /[S南]/i.test(latDir)) {
+                lat = -Math.abs(lat);
+            }
+
+            const lonDir = match[4] || match[6];
+            if (lonDir && /[W西]/i.test(lonDir)) {
+                lon = -Math.abs(lon);
+            }
+
+            if (Number.isFinite(lat) && Number.isFinite(lon)) return { lat, lon };
+        }
+
+        const arr = s.split(',').map(v => parseFloat(v));
+        if (arr.length === 2 && Number.isFinite(arr[0]) && Number.isFinite(arr[1])) {
+            return { lat: arr[0], lon: arr[1] };
+        }
+
+        return null;
+    }
+
     function readDecimal(pt){ const la = parseFloat(document.getElementById('lat'+pt+'_dec').value); const lo = parseFloat(document.getElementById('lon'+pt+'_dec').value); if (Number.isFinite(la) && Number.isFinite(lo)) return {lat:la, lon:lo}; return null; }
     function dmsToDecimal(deg, min, sec) { const D = parseFloat(deg), M = parseFloat(min), S = parseFloat(sec); if (!Number.isFinite(D) || !Number.isFinite(M) || !Number.isFinite(S)) return NaN; const sign = D < 0 ? -1 : 1; return sign * (Math.abs(D) + Math.abs(M)/60 + Math.abs(S)/3600); }
     function readDMS(pt){ const la = dmsToDecimal( document.getElementById('lat'+pt+'_deg').value, document.getElementById('lat'+pt+'_min').value, document.getElementById('lat'+pt+'_sec').value ); const lo = dmsToDecimal( document.getElementById('lon'+pt+'_deg').value, document.getElementById('lon'+pt+'_min').value, document.getElementById('lon'+pt+'_sec').value ); if (Number.isFinite(la) && Number.isFinite(lo)) return {lat:la, lon:lo}; return null; }
@@ -309,11 +343,10 @@
       document.getElementById('any_add_btn').addEventListener('click', addArbitraryLink);
       document.getElementById('any_clear_btn').addEventListener('click', clearArbitrary);
       document.getElementById('getLocationBtn').addEventListener('click', function() { if (navigator.geolocation) { navigator.geolocation.getCurrentPosition( function(position) { const lat = position.coords.latitude; const lon = position.coords.longitude; setPair('A', lat, lon); setDecimal('A', lat, lon); setDMSFromDecimal('A', lat, lon); calculate(); showToast('現在地をAに設定しました'); }, function(error) { let msg = "位置情報の取得に失敗"; switch(error.code) { case 1: msg = "位置情報の利用が許可されていません"; break; case 2: msg = "位置情報を取得できませんでした"; break; case 3: msg = "タイムアウトしました"; break; } showToast(msg); } ); } else { showToast('ブラウザが位置情報取得に非対応です'); } });
-       // ページロード時に一度計算を実行して、空の結果表示を初期化
       calculate();
     };
     
-    PTS.forEach(pt=>{ document.getElementById('latlon'+pt).addEventListener('input',()=>{ const p = readPair(pt); if (p){ setDecimal(pt, p.lat, p.lon); setDMSFromDecimal(pt, p.lat, p.lon); calculate(); } }); ['lat','lon'].forEach(kind=>{ document.getElementById(kind+pt+'_dec').addEventListener('input',()=>{ const dec = readDecimal(pt); if (dec){ setPair(pt, dec.lat, dec.lon); setDMSFromDecimal(pt, dec.lat, dec.lon); calculate(); } }); }); [['lat','deg'],['lat','min'],['lat','sec'],['lon','deg'],['lon','min'],['lon','sec']].forEach(([k,s])=>{ document.getElementById(k+pt+'_s').addEventListener('input',()=>{ const d = readDMS(pt); if (d){ setDecimal(pt, d.lat, d.lon); setPair(pt, d.lat, d.lon); calculate(); } }); }); });
+    PTS.forEach(pt=>{ document.getElementById('latlon'+pt).addEventListener('input',()=>{ const p = readPair(pt); if (p){ setDecimal(pt, p.lat, p.lon); setDMSFromDecimal(pt, p.lat, p.lon); calculate(); } }); ['lat','lon'].forEach(kind=>{ document.getElementById(kind+pt+'_dec').addEventListener('input',()=>{ const dec = readDecimal(pt); if (dec){ setPair(pt, dec.lat, dec.lon); setDMSFromDecimal(pt, dec.lat, dec.lon); calculate(); } }); }); [['lat','deg'],['lat','min'],['lat','sec'],['lon','deg'],['lon','min'],['lon','sec']].forEach(([k,s])=>{ document.getElementById(k+pt+'_sec').addEventListener('input',()=>{ const d = readDMS(pt); if (d){ setDecimal(pt, d.lat, d.lon); setPair(pt, d.lat, d.lon); calculate(); } }); }); });
   </script>
 </body>
 </html>
