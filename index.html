@@ -143,7 +143,7 @@
     <h2>方位角・距離計算ツール</h2>
 
     <div class="tab-nav">
-      <button class="tab-button active" data-tab="tab-calc">計算</button>
+      <button class="tab-button active" data-tab="tab-calc">入力</button>
       <button class="tab-button" data-tab="tab-results">結果</button>
       <button class="tab-button" data-tab="tab-tools">ツール</button>
     </div>
@@ -190,7 +190,7 @@
     <div id="tab-tools" class="tab-panel">
       <div class="card">
         <h3>任意の角度・距離でリンクを追加</h3>
-        <div class="note">基準点は「計算」タブのA点です。</div>
+        <div class="note">基準点は「入力」タブのA点です。</div>
         <div class="bearing-row" style="margin:1em 0;">
           <label>角度(°): <input id="any_bearing" type="number" step="0.1" placeholder="90"></label><br>
           <label>距離: <input id="any_distance" type="number" step="0.001" placeholder="1.5"></label>
@@ -313,7 +313,7 @@
       calculate();
     };
     
-    PTS.forEach(pt=>{ document.getElementById('latlon'+pt).addEventListener('input',()=>{ const p = readPair(pt); if (p){ setDecimal(pt, p.lat, p.lon); setDMSFromDecimal(pt, p.lat, p.lon); calculate(); } }); ['lat','lon'].forEach(kind=>{ document.getElementById(kind+pt+'_dec').addEventListener('input',()=>{ const dec = readDecimal(pt); if (dec){ setPair(pt, dec.lat, dec.lon); setDMSFromDecimal(pt, dec.lat, dec.lon); calculate(); } }); }); [['lat','deg'],['lat','min'],['lat','sec'],['lon','deg'],['lon','min'],['lon','sec']].forEach(([k,s])=>{ document.getElementById(k+pt+'_'+s).addEventListener('input',()=>{ const d = readDMS(pt); if (d){ setDecimal(pt, d.lat, d.lon); setPair(pt, d.lat, d.lon); calculate(); } }); }); });
+    PTS.forEach(pt=>{ document.getElementById('latlon'+pt).addEventListener('input',()=>{ const p = readPair(pt); if (p){ setDecimal(pt, p.lat, p.lon); setDMSFromDecimal(pt, p.lat, p.lon); calculate(); } }); ['lat','lon'].forEach(kind=>{ document.getElementById(kind+pt+'_dec').addEventListener('input',()=>{ const dec = readDecimal(pt); if (dec){ setPair(pt, dec.lat, dec.lon); setDMSFromDecimal(pt, dec.lat, dec.lon); calculate(); } }); }); [['lat','deg'],['lat','min'],['lat','sec'],['lon','deg'],['lon','min'],['lon','sec']].forEach(([k,s])=>{ document.getElementById(k+pt+'_s').addEventListener('input',()=>{ const d = readDMS(pt); if (d){ setDecimal(pt, d.lat, d.lon); setPair(pt, d.lat, d.lon); calculate(); } }); }); });
   </script>
 </body>
 </html>
