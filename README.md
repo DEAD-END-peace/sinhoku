@@ -1,73 +1,67 @@
-# Azimuth & Distance Calculation Tool  
-# 方位角・距離計算ツール
+# 方位角・距離計算ツール (タブ化 + 自動位置取得対応)
 
-A lightweight **browser-based tool** to calculate **azimuth (bearing)** and **distance** between geographic points.  
-Set a base point (Point A), then calculate distance and direction to Points B, C, D, or generate a new point by specifying **bearing and distance**.  
-Open locations directly in **Google Maps** or **Apple Maps**, and share results via URL.
+このプロジェクトは、指定した地点（A～D）や現在地を基点として、  
+任意の方位角・距離から目的地を計算し、Google マップリンクを自動生成するツールです。  
+Apple の Human Interface Guideline を参考に、タブ化 UI を採用しています。
 
-ブラウザで動作する簡易的な **方位角・距離計算ツール** です。  
-基準点（A点）を設定し、B, C, D までの **方位角（真北基準）** と **距離(km)** を計算できます。  
-さらに、A点から **任意の角度・距離** を指定して新しい地点を算出し、GoogleマップやAppleマップで開けます。  
-結果は **共有URL** としてコピー可能です。
+## 主な機能
+- **地点入力 (A〜D)**  
+  緯度・経度を入力して基準点を設定
+- **現在地自動取得**  
+  Geolocation API を用いてワンクリックで A 点に現在地を反映
+- **任意角度・距離追加**  
+  A 点から任意の方位角・距離で新しいリンクを生成
+- **結果表示**  
+  計算結果や Google マップへのリンクを一覧表示
+- **方位・距離可視化**  
+  SVG による真北基準の矢印表示
+- **共有 URL**  
+  入力データを共有できる URL を自動生成
 
----
+## 使用方法
+1. `index.html`（または `自動位置取得(タブ化).html`）をブラウザで開く  
+2. 「入力」タブで A〜D の緯度・経度を入力  
+3. 「現在地をA点にセット」ボタンで自動入力も可能  
+4. 「任意リンク」タブで角度・距離を指定し追加  
+5. 「結果・マップ」タブで計算結果とリンクを確認
 
-## Features / 主な機能
-
-- **Input Mode Switch / 入力モード切替**  
-  - Decimal Degrees (e.g., `33.25032, 130.49475`)  
-  - Degrees, Minutes, Seconds (DMS, e.g., `33°15′25″`)  
-
-- **Point Calculation / 地点計算**  
-  - Supports Points A, B, C, D  
-  - Calculates **bearing & distance** from A to each  
-
-- **Map Links / マップリンク生成**  
-  - Open in Google Maps or Apple Maps  
-  - Optimized for iOS, Android, and PC  
-
-- **Shareable URL / 共有URL生成**  
-  - Generates a link containing all input data  
-  - Share with others to reproduce the same setup  
-
-- **Custom Point from Bearing & Distance / 任意の角度・距離で地点追加**  
-  - Enter angle (°) and distance (km/m) from Point A  
-  - Automatically adds a clickable map link  
-  - Clear button resets inputs & custom links  
-
-- **Visualization (SVG) / 可視化 (SVG)**  
-  - Displays direction and distance vectors from Point A  
+## 技術仕様
+- HTML / CSS / JavaScript（純粋フロントエンド）
+- Geolocation API 使用
+- Apple HIG を参考にしたタブ UI 実装
+- ローカル環境または HTTPS サーバで動作確認推奨
 
 ---
 
-## Usage / 使い方
+# Bearing & Distance Calculation Tool (Tabbed + Auto Geolocation)
 
-1. Enter coordinates for Point A  
-   A点の座標を入力  
-2. Optionally enter Points B, C, D  
-   必要に応じて B, C, D の座標を入力  
-3. Click **Calculate** to see results  
-   「計算」ボタンで結果を表示  
-4. Use **Map Links** to open locations  
-   マップリンクから地図アプリを開く  
-5. Click **Generate Share URL** to copy a link  
-   「共有URL生成」でリンクをコピー  
-6. Enter custom **bearing & distance** to add a new point  
-   任意の角度・距離を入力し、地点を追加可能  
+This project provides a simple browser-based tool to calculate destination points  
+from a reference location (A–D or current location) given a bearing and distance.  
+It also auto-generates shareable Google Maps links.
 
----
+## Features
+- **Point Input (A–D)**  
+  Enter latitude/longitude to define a base point
+- **Auto Geolocation**  
+  Use the Geolocation API to set your current location as Point A
+- **Custom Bearing & Distance**  
+  Add arbitrary points by specifying angle and distance from Point A
+- **Results View**  
+  Displays calculated coordinates and direct Google Maps links
+- **Visualization**  
+  SVG diagram with true north reference
+- **Shareable URL**  
+  Generate and copy a link containing your input data
 
-## Environment / 動作環境
+## How to Use
+1. Open `index.html` (or `自動位置取得(タブ化).html`) in a browser  
+2. In the **Input** tab, enter coordinates for Points A–D  
+3. Optionally click **Set current location as Point A**  
+4. In the **Custom** tab, enter a bearing and distance to add a new link  
+5. In the **Results** tab, view calculated data and open Google Maps
 
-- Works on PC & Smartphone browsers  
-  (Chrome, Safari, Edge, etc.)  
-- Tested on **iOS** & **Android**
-
-PC・スマートフォンブラウザで動作  
-(iOS / Android 含む)
-
----
-
-## License / ライセンス
-
-MIT License
+## Tech Stack
+- Pure HTML / CSS / JavaScript  
+- Uses Geolocation API  
+- Tabbed UI based on Apple Human Interface Guidelines  
+- Works best over HTTPS or localhost
