@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -224,8 +223,6 @@
   <div id="mapPickerBackdrop" class="modal-backdrop" aria-hidden="true"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mapPickerTitle"><h4 id="mapPickerTitle">開くマップを選択</h4><div class="btn-row"><button id="btnApple" class="btn-outline" type="button">Appleマップ</button><button id="btnGoogle" class="btn-outline" type="button">Googleマップ</button></div><button id="btnClosePicker" class="btn-close" type="button">閉じる</button></div></div>
   
   <script>
-    // 既存のJavaScriptコードは変更せず、そのまま全てここにペーストします。
-    // ... (前の回答で提供された全てのJavaScriptコード) ...
     let isDecimal = true;
     const PTS = ['A','B','C','D'];
     function isAppleMobile(){ const ua = navigator.userAgent || ''; const iOS = /iPhone|iPad|iPod/i.test(ua); const iPadLike = navigator.platform === 'MacIntel' && typeof navigator.maxTouchPoints === 'number' && navigator.maxTouchPoints > 1; return iOS || iPadLike; }
@@ -243,8 +240,8 @@
     function calculate() { const pts=['A','B','C','D'], coords={}, parts=[]; let mapHtml = '<ul>'; pts.forEach(pt => { let lat, lon; if (!isDecimal) { const d = readDMS(pt); lat = d? d.lat : NaN; lon = d? d.lon : NaN; } else { const p = readPair(pt) || readDecimal(pt); lat = p? p.lat : NaN; lon = p? p.lon : NaN; } if(Number.isFinite(lat) && Number.isFinite(lon)) parts.push(`${lat},${lon}`); coords[pt] = [lat, lon]; const disabled = (!Number.isFinite(lat) || !Number.isFinite(lon)); const link = disabled ? `<span>${pt}点: -</span>` : `<button type="button" class="map-link" onclick="openMap(event, ${lat}, ${lon})">${pt}点: マップで開く</button>`; mapHtml += `<li>${link}</li>`; }); document.getElementById('mapLinks').innerHTML = mapHtml + '</ul>'; let tbl = '<table><tr><th>区間</th><th>方位角</th><th>距離(km)</th></tr>', viz = []; const validPts = ['B','C','D'].filter(pt => Number.isFinite(coords[pt][0]) && Number.isFinite(coords[pt][1]) && Number.isFinite(coords.A[0]) && Number.isFinite(coords.A[1])); validPts.forEach(pt => { const [a1,b1] = coords.A, [a2,b2] = coords[pt]; const r = calc(a1,b1,a2,b2); tbl += `<tr><td>A→${pt}</td><td>${r.dms}</td><td>${r.dist.toFixed(3)}</td></tr>`; viz.push({ label:pt, decimal:r.decimal, dms:r.dms, dist:r.dist }); }); document.getElementById('results').innerHTML = tbl + '</table>'; drawViz(viz); const base = location.origin + location.pathname.replace(/\/[^/]*$/, '/'); document.getElementById('shareURL').value = `${base}?location=${parts.join('-')}`; }
     function calc(lat1, lon1, lat2, lon2) { const R = 6371; const φ1 = toRad(lat1), φ2 = toRad(lat2), Δλ = toRad(lon2 - lon1); const y = Math.sin(Δλ)*Math.cos(φ2); const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ); const dec = (Math.atan2(y,x)*180/Math.PI + 360) % 360; const deg = Math.floor(dec), min = Math.floor((dec-deg)*60), sec = (((dec-deg)*60-min)*60).toFixed(1); const dms = `${deg}°${min}′${sec}″`; const a = Math.sin((φ2-φ1)/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2; const dist = R * 2 * Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); return { decimal:dec, dms, dist }; }
     function toRad(d) { return d*Math.PI/180; }
-    let pendingCoord = null; const backdrop = document.getElementById('mapPickerBackdrop'); const btnApple = document.getElementById('btnApple'); const btnGoogle = document.getElementById('btnGoogle'); const btnClosePicker = document.getElementById('btnClosePicker'); function openPicker(lat, lon){ pendingCoord = {lat, lon}; backdrop.classList.add('show'); backdrop.setAttribute('aria-hidden','false'); } function closePicker(){ backdrop.classList.remove('show'); backdrop.setAttribute('aria-hidden','true'); pendingCoord = null; } backdrop.addEventListener('click', (e)=>{ if(e.target === backdrop) closePicker(); }); btnClosePicker.addEventListener('click', closePicker); btnApple.addEventListener('click', ()=>{ if(!pendingCoord) return; const {lat, lon} = pendingCoord; const aHttp = `https://maps.apple.com/?q=${lat},${lon}`; openExternal(aHttp); closePicker(); }); btnGoogle.addEventListener('click', ()=>{ if(!pendingCoord) return; const {lat, lon} = pendingCoord; openExternal(`https://www.google.com/maps?q=${lat},${lon}`); closePicker(); });
-    function openMap(e, lat, lon){ if (e) e.preventDefault(); if (isAndroid()) { openExternal(`https://www.google.com/maps?q=${lat},${lon}`); return; } if (isAppleMobile()) { openPicker(lat, lon); return; } openExternal(`https://www.google.com/maps?q=${lat},${lon}`); }
+    let pendingCoord = null; const backdrop = document.getElementById('mapPickerBackdrop'); const btnApple = document.getElementById('btnApple'); const btnGoogle = document.getElementById('btnGoogle'); const btnClosePicker = document.getElementById('btnClosePicker'); function openPicker(lat, lon){ pendingCoord = {lat, lon}; backdrop.classList.add('show'); backdrop.setAttribute('aria-hidden','false'); } function closePicker(){ backdrop.classList.remove('show'); backdrop.setAttribute('aria-hidden','true'); pendingCoord = null; } backdrop.addEventListener('click', (e)=>{ if(e.target === backdrop) closePicker(); }); btnClosePicker.addEventListener('click', closePicker); btnApple.addEventListener('click', ()=>{ if(!pendingCoord) return; const {lat, lon} = pendingCoord; const aHttp = `https://maps.apple.com/?q=${lat},${lon}`; openExternal(aHttp); closePicker(); }); btnGoogle.addEventListener('click', ()=>{ if(!pendingCoord) return; const {lat, lon} = pendingCoord; openExternal(`http://googleusercontent.com/maps/google/0{lat},${lon}`); closePicker(); });
+    function openMap(e, lat, lon){ if (e) e.preventDefault(); if (isAndroid()) { openExternal(`http://googleusercontent.com/maps/google/0{lat},${lon}`); return; } if (isAppleMobile()) { openPicker(lat, lon); return; } openExternal(`http://googleusercontent.com/maps/google/0{lat},${lon}`); }
     async function generateShareURL() { calculate(); const url = document.getElementById('shareURL').value; const btn = document.getElementById('shareBtn'); try { await copyText(url); showToast('共有URLをコピーしました'); } catch (e) { showToast('コピーに失敗しました'); } }
     async function copyText(text) { if (!text) throw new Error('empty'); if (navigator.clipboard) { await navigator.clipboard.writeText(text); return; } const ta = document.createElement('textarea'); ta.value = text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
     function showToast(msg) { const toast = document.getElementById('toast'); toast.textContent = msg; toast.classList.add('show'); clearTimeout(showToast._timer); showToast._timer = setTimeout(() => { toast.classList.remove('show'); }, 2000); }
@@ -255,7 +252,6 @@
     function addArbitraryLink() { const A = readPointA(); if (!A) { showToast('A点が未入力です'); return; } const bearing = parseFloat(document.getElementById('any_bearing').value); let distVal = parseFloat(document.getElementById('any_distance').value); const unit = document.getElementById('any_unit').value; if (!Number.isFinite(bearing) || !Number.isFinite(distVal) || distVal < 0) { showToast('角度・距離の入力を確認してください'); return; } if (unit === 'm') distVal /= 1000.0; const d = destPoint(A.lat, A.lon, bearing, distVal); const normBearing = (((bearing % 360) + 360) % 360).toFixed(1); const li = document.createElement('li'); li.dataset.arbitrary = '1'; const btn = document.createElement('button'); btn.className = 'map-link'; btn.type = 'button'; btn.textContent = `角度${normBearing}° 距離${distVal.toFixed(3)}km → マップで開く`; btn.addEventListener('click', (e)=> openMap(e, d.lat, d.lon)); li.appendChild(btn); document.getElementById('arbList').appendChild(li); showToast('任意地点のマップリンクを追加しました'); }
     function clearArbitrary() { document.getElementById('any_bearing').value = ''; document.getElementById('any_distance').value = ''; document.getElementById('any_unit').value = 'km'; document.querySelectorAll('#arbList li').forEach(el => el.remove()); showToast('任意リンクをクリアしました'); }
     
-    // ▼▼▼【新規追加】タブ切り替え機能 ▼▼▼
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabPanels = document.querySelectorAll('.tab-panel');
 
@@ -269,12 +265,13 @@
       });
     });
 
+    // ▼▼▼【変更】この関数を修正しました ▼▼▼
     function calculateAndSwitchTab() {
         calculate();
-        // 結果タブを表示
+        // 正しく「結果」タブを表示するように修正
         document.querySelector('.tab-button[data-tab="tab-results"]').click();
     }
-    // ▲▲▲【新規追加】ここまで ▲▲▲
+    // ▲▲▲ 変更ここまで ▲▲▲
 
     window.onload=function(){
       parseUrlInputs();
