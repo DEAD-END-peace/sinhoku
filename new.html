@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>方位角・距離計算ツール（地図機能付き）</title>
+  <link rel="icon" href="image/logo.png" type="image/png">
+  <!-- Leaflet.js の CSS を追加 -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    :root {
+      --system-blue: #007aff;
+      --system-background: #f0f2f5;
+      --secondary-background: #ffffff;
+      --separator-color: #e5e5e5;
+      --text-color: #1d1d1f;
+      --secondary-text-color: #8a8a8e;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--system-background);
+      margin: 0;
+      padding: 1em;
+      color: var(--text-color);
+    }
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    h2 {
+      color: var(--text-color);
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .tab-nav {
+      display: flex;
+      background-color: #e9e9eb;
+      border-radius: 8px;
+      padding: 3px;
+      margin-bottom: 1.5em;
+    }
+    .tab-button {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      background-color: transparent;
+      color: var(--secondary-text-color);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+    .tab-button.active {
+      background-color: var(--secondary-background);
+      color: var(--text-color);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .tab-panel {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    .tab-panel.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1em;
+      background: var(--secondary-background);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    th, td {
+      border: 1px solid var(--separator-color);
+      padding: 0.75em 0.5em;
+      text-align: center;
+    }
+    th {
+      background-color: #f7f7f7;
+      font-weight: 500;
+    }
+    input {
+      width: 95%;
+      box-sizing: border-box;
+      padding: 0.5em;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .dmsInput { display: none; }
+    .decimalInput { display: table-cell; }
+    button {
+      margin: 0.5em 0.2em;
+      padding: 0.6em 1.2em;
+      font-size: 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .button-primary {
+      background: var(--system-blue);
+      color: #fff;
+    }
+    .button-primary:hover { background: #0056b3; }
+    .button-secondary {
+        background-color: #e9e9eb;
+        color: var(--text-color);
+    }
+    .button-secondary:hover { background-color: #dcdce1; }
+    .card {
+      background: var(--secondary-background);
+      border: 1px solid var(--separator-color);
+      border-radius: 12px;
+      padding: 15px;
+      margin-top: 1em;
+    }
+    .card h3 { margin: 0 0 10px; font-size: 18px; }
+    #shareURL { width: 100%; padding: 0.5em; margin-top: 0.5em; font-size: 0.9em; box-sizing: border-box; }
+    
+    /* Map container style */
+    #map { 
+      width: 100%; 
+      height: 400px; /* Adjust height as needed */
+      border: 1px solid var(--separator-color); 
+      background: #fdfdfd; 
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+    .note { font-size: 12px; color: var(--secondary-text-color); margin-top: 5px; }
+    ul { padding-left: 1.2em; }
+    li { margin-bottom: 0.5em; }
+    .map-link { text-decoration: none; color: var(--system-blue); cursor: pointer; background: transparent; border: none; padding: 0; }
+    #toast { visibility: hidden; min-width: 180px; max-width: 90vw; background-color: rgba(0,0,0,0.75); color: #fff; text-align: center; border-radius: 12px; padding: 12px 16px; position: fixed; z-index: 1000; bottom: 24px; left: 50%; transform: translateX(-50%); font-size: 14px; opacity: 0; transition: all 0.35s ease; }
+    #toast.show { visibility: visible; opacity: 1; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: center; justify-content: center; z-index: 1200; }
+    .modal-backdrop.show { display: flex; }
+    .modal { width: min(92vw, 420px); background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.2); padding: 18px; }
+    .modal h4 { margin: 0 0 12px; font-size: 18px; }
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn-outline { background: #fff; color: var(--system-blue); border: 1px solid var(--system-blue); padding: 10px 12px; border-radius: 8px; cursor: pointer; }
+    .btn-outline:hover { background: #f0f8ff; }
+    .btn-close { margin-top: 8px; width: 100%; background: #e5e7eb; color: #333; border: none; border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+    .btn-close:hover { background: #d1d5db; }
+
+    .help-section {
+        margin-bottom: 1.5em;
+    }
+    .help-section h4 {
+        font-size: 1.1em;
+        border-bottom: 1px solid var(--separator-color);
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+    }
+    .help-section p, .help-section li {
+        font-size: 0.95em;
+        line-height: 1.6;
+        color: var(--secondary-text-color);
+    }
+    .help-section ul, .help-section ol {
+        padding-left: 20px;
+    }
+    .help-section ul ul {
+      margin-top: 8px;
+    }
+    .help-section code {
+      font-family: monospace;
+      background: #eee;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    /* For Leaflet attribution */
+    .leaflet-container .leaflet-control-attribution {
+      font-size: 10px;
+    }
+    /* SVG Marker Style */
+    .leaflet-div-icon {
+        background: transparent;
+        border: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>方位角・距離計算ツール</h2>
+    <button type="button" id="showHelpBtn" class="button-secondary" style="margin-bottom: 1em;">使い方ガイド（ヘルプ）</button>
+
+    <div class="tab-nav">
+      <button class="tab-button active" data-tab="tab-calc">入力</button>
+      <button class="tab-button" data-tab="tab-results">結果</button>
+      <button class="tab-button" data-tab="tab-tools">ツール</button>
+    </div>
+
+    <div id="tab-calc" class="tab-panel active">
+      <form onsubmit="return false;">
+        <table>
+          <tr>
+            <th>地点</th>
+            <th>緯度・経度ペア</th>
+            <th class="dmsInput">緯度(度分秒)</th>
+            <th class="dmsInput">経度(度分秒)</th>
+            <th class="decimalInput">緯度(10進)</th>
+            <th class="decimalInput">経度(10進)</th>
+          </tr>
+          <tr><td>A</td><td><input id="latlonA" placeholder="例: 北33.3°, 東130.5°"></td><td class="dmsInput"><input id="latA_deg" size="3">° <input id="latA_min" size="2">′ <input type="number" id="latA_sec" size="4">″</td><td class="dmsInput"><input id="lonA_deg" size="3">° <input id="lonA_min" size="2">′ <input type="number" id="lonA_sec" size="4">″</td><td class="decimalInput"><input id="latA_dec"></td><td class="decimalInput"><input id="lonA_dec"></td></tr>
+          <tr><td>B</td><td><input id="latlonB"></td><td class="dmsInput"><input id="latB_deg" size="3">° <input id="latB_min" size="2">′ <input type="number" id="latB_sec" size="4">″</td><td class="dmsInput"><input id="lonB_deg" size="3">° <input id="lonB_min" size="2">′ <input type="number" id="lonB_sec" size="4">″</td><td class="decimalInput"><input id="latB_dec"></td><td class="decimalInput"><input id="lonB_dec"></td></tr>
+          <tr><td>C</td><td><input id="latlonC"></td><td class="dmsInput"><input id="latC_deg" size="3">° <input id="latC_min" size="2">′ <input type="number" id="latC_sec" size="4">″</td><td class="dmsInput"><input id="lonC_deg" size="3">° <input id="lonC_min" size="2">′ <input type="number" id="lonC_sec" size="4">″</td><td class="decimalInput"><input id="latC_dec"></td><td class="decimalInput"><input id="lonC_dec"></td></tr>
+          <tr><td>D</td><td><input id="latlonD"></td><td class="dmsInput"><input id="latD_deg" size="3">° <input id="latD_min" size="2">′ <input type="number" id="latD_sec" size="4">″</td><td class="dmsInput"><input id="lonD_deg" size="3">° <input id="lonD_min" size="2">′ <input type="number" id="lonD_sec" size="4">″</td><td class="decimalInput"><input id="latD_dec"></td><td class="decimalInput"><input id="lonD_dec"></td></tr>
+        </table>
+        <button type="button" class="button-primary" onclick="switchToResultsTab()">結果を表示</button>
+        <button type="button" id="getLocationBtn" class="button-secondary" style="background-color: #4CAF50; color: white;">現在地をAに設定🌍</button>
+        <button type="button" onclick="toggleInputMode()" class="button-secondary">入力モード切替: <span id="inputMode">10進入力</span></button>
+      </form>
+    </div>
+
+    <div id="tab-results" class="tab-panel">
+      <div class="card">
+        <h3>計算結果</h3>
+        <div id="results"></div>
+      </div>
+       <div class="card">
+        <h3>インタラクティブマップ</h3>
+        <div class="note">各地点の位置関係を地図上で確認できます。</div>
+        <div id="map"></div>
+      </div>
+      <div class="card">
+        <h3>マップで開く（外部アプリ）</h3>
+        <div id="mapLinks"></div>
+        <ul id="mapLinksArb"></ul>
+      </div>
+    </div>
+
+    <div id="tab-tools" class="tab-panel">
+      <div class="card">
+        <h3>任意の角度・距離でリンクを追加</h3>
+        <div class="note">基準点は「入力」タブのA点です。</div>
+        <div class="bearing-row" style="margin:1em 0;">
+          <label>角度(°): <input id="any_bearing" type="number" step="0.1" placeholder="90"></label><br>
+          <label>距離: <input id="any_distance" type="number" step="0.001" placeholder="1.5"></label>
+          <select id="any_unit"><option value="km">km</option><option value="m">m</option></select>
+        </div>
+        <button type="button" id="any_add_btn" class="button-secondary">この条件でリンクを追加</button>
+        <button type="button" id="any_clear_btn" class="button-secondary" style="background:#ff453a; color:white;">クリア</button>
+        <ul id="arbList"></ul>
+      </div>
+       <div class="card">
+        <h3>共有URL</h3>
+        <input type="text" id="shareURL" readonly placeholder="ここに生成URLが表示されます">
+        <button id="shareBtn" onclick="generateShareURL()" class="button-secondary">共有URLをコピー</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="mapPickerBackdrop" class="modal-backdrop" aria-hidden="true"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mapPickerTitle"><h4 id="mapPickerTitle">開くマップを選択</h4><div class="btn-row"><button id="btnApple" class="btn-outline" type="button">Appleマップ</button><button id="btnGoogle" class="btn-outline" type="button">Googleマップ</button></div><button id="btnClosePicker" class="btn-close" type="button">閉じる</button></div></div>
+  
+  <!-- ▼▼▼ ヘルプモーダルの内容を更新 ▼▼▼ -->
+  <div id="help-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal" style="max-height: 85vh; overflow-y: auto; text-align: left;">
+      <h3 style="text-align: center; margin-top:0;">「方位角・距離計算ツール」の使い方</h3>
+      
+      <div class="help-section">
+          <h4>はじめに</h4>
+          <p>このツールは、基準点から目標地点への「方角（方位角）」と「直線距離」を計算し、地図上に視覚的に表示します。</p>
+      </div>
+
+      <div class="help-section">
+          <h4>基本的な使い方</h4>
+          <ol>
+              <li><strong>基準点（A地点）を決める</strong><br>
+                  <code>現在地をAに設定🌍</code> ボタンを押すか、緯度経度を直接入力します。
+              </li>
+              <li><strong>目的地（B, C, D...）を決める</strong><br>
+                  目的地の緯度経度を同様に入力します。
+              </li>
+              <li><strong>結果を見る</strong><br>
+                  <code>結果を表示</code> ボタンを押すと、「結果」タブに切り替わります。計算結果とインタラクティブマップが表示されます。
+              </li>
+          </ol>
+      </div>
+
+      <div class="help-section">
+          <h4>地図の読み方</h4>
+          <p>「結果」タブのインタラクティブマップには、以下の情報が表示されます。</p>
+          <ul>
+              <li><strong>地点マーカー</strong><br>
+                A, B, C, Dやツールで追加した地点が、文字や数字入りのピンで表示されます。ピンをクリックすると詳細を確認できます。
+              </li>
+              <li><strong>真北ライン (青い線)</strong><br>
+                A地点から真北（方位角0度）の方向へ2km伸びる青い実線です。方角を把握する際の基準線となります。
+              </li>
+              <li><strong>ターゲットライン (カラフルな線)</strong><br>
+                B, C, Dやツールで追加した各地点から、基準点Aへ向かって引かれた色付きの実線です。これにより、各地点から見てA地点がどの方向にあるかが直感的に分かります。色は自動的に割り当てられます。
+              </li>
+          </ul>
+      </div>
+
+      <div class="help-section">
+          <h4>各機能の説明</h4>
+          <ul>
+              <li><strong>入力タブ</strong><br>
+                  <code>入力モード切替</code> ボタンで、緯度経度の入力を「10進数（例: 33.589）」と「60進数（度分秒）」で切り替えられます。
+              </li>
+              <li><strong>結果タブ</strong><br>
+                  計算結果の表、インタラクティブマップ、外部地図アプリで開くためのリンクが表示されます。
+              </li>
+              <li><strong>ツールタブ</strong>
+                  <ul>
+                      <li><strong>任意の角度・距離でリンクを追加:</strong><br>
+                        A地点から「北東（45°）の方角へ500m」のような、方角と距離が分かっている地点を地図上に追加できます。
+                      </li>
+                      <li><strong>共有URL:</strong><br>
+                        入力した全地点の情報を含んだURLを生成・コピーできます。
+                      </li>
+                  </ul>
+              </li>
+          </ul>
+      </div>
+      <button id="closeHelpBtn" class="btn-close">閉じる</button>
+    </div>
+  </div>
+  <!-- ▲▲▲ ヘルプモーダルの更新ここまで ▲▲▲ -->
+  
+  <!-- Leaflet.js の JavaScript を追加 -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    let isDecimal = true;
+    const PTS = ['A','B','C','D'];
+    
+    // --- Map related variables ---
+    let map = null;
+    let mapMarkers = [];
+    let mapPolylines = [];
+    let arbitraryPointCounter = 1;
+    let mapArbitraryPoints = []; // ▼▼▼ 任意地点の情報を保持する配列 ▼▼▼
+    
+    // ▼▼▼ ライン描画用のカラーパレットを定義 ▼▼▼
+    const lineColors = [
+        '#E53935', '#D81B60', '#8E24AA', '#5E35B1', '#3949AB', '#1E88E5', 
+        '#039BE5', '#00ACC1', '#00897B', '#43A047', '#7CB342', '#C0CA33', 
+        '#FDD835', '#FFB300', '#FB8C00', '#F4511E'
+    ];
+    // --- End Map variables ---
+
+    function isAppleMobile(){ const ua = navigator.userAgent || ''; const iOS = /iPhone|iPad|iPod/i.test(ua); const iPadLike = navigator.platform === 'MacIntel' && typeof navigator.maxTouchPoints === 'number' && navigator.maxTouchPoints > 1; return iOS || iPadLike; }
+    function isAndroid(){ return /Android/i.test(navigator.userAgent || ''); }
+    function openExternal(url) { if (isAppleMobile()) { window.location.assign(url); } else { window.open(url, '_blank', 'noopener'); } }
+    function toggleInputMode() { isDecimal = !isDecimal; document.getElementById('inputMode').textContent = isDecimal ? '10進入力' : '60進入力'; document.querySelectorAll('.decimalInput').forEach(el => el.style.display = isDecimal ? 'table-cell' : 'none'); document.querySelectorAll('.dmsInput').forEach(el => el.style.display = isDecimal ? 'none' : 'table-cell'); PTS.forEach(pt => { const pair = readPair(pt); if (pair && Number.isFinite(pair.lat) && Number.isFinite(pair.lon)) { setDecimal(pt, pair.lat, pair.lon); setDMSFromDecimal(pt, pair.lat, pair.lon); } else { const dec = readDecimal(pt); if (dec) { setPair(pt, dec.lat, dec.lon); setDMSFromDecimal(pt, dec.lat, dec.lon); } else { const dms = readDMS(pt); if (dms) { setDecimal(pt, dms.lat, dms.lon); setPair(pt, dms.lat, dms.lon); } } } }); calculate(); }
+    
+    function readPair(pt) {
+        const val = document.getElementById('latlon' + pt).value.trim();
+        if (!val) return null;
+        const s = val.replace(/^\s*\(|\)\s*$/g, '');
+        const flexibleRegex = /([NS北南])?\s*([\d\.]+)\s*[°度]?\s*([NS北南])?\s*[,、\s]+\s*([EW東西])?\s*([\d\.]+)\s*[°度]?\s*([EW東西])?/i;
+        const match = s.match(flexibleRegex);
+        if (match) {
+            let lat = parseFloat(match[2]);
+            let lon = parseFloat(match[5]);
+            const latDir = match[1] || match[3];
+            if (latDir && /[S南]/i.test(latDir)) lat = -Math.abs(lat);
+            const lonDir = match[4] || match[6];
+            if (lonDir && /[W西]/i.test(lonDir)) lon = -Math.abs(lon);
+            if (Number.isFinite(lat) && Number.isFinite(lon)) return { lat, lon };
+        }
+        const arr = s.split(',').map(v => parseFloat(v));
+        if (arr.length === 2 && Number.isFinite(arr[0]) && Number.isFinite(arr[1])) return { lat: arr[0], lon: arr[1] };
+        return null;
+    }
+
+    function readDecimal(pt){ const la = parseFloat(document.getElementById('lat'+pt+'_dec').value); const lo = parseFloat(document.getElementById('lon'+pt+'_dec').value); if (Number.isFinite(la) && Number.isFinite(lo)) return {lat:la, lon:lo}; return null; }
+    function dmsToDecimal(deg, min, sec) { const D = parseFloat(deg), M = parseFloat(min), S = parseFloat(sec); if (!Number.isFinite(D) || !Number.isFinite(M) || !Number.isFinite(S)) return NaN; const sign = D < 0 ? -1 : 1; return sign * (Math.abs(D) + Math.abs(M)/60 + Math.abs(S)/3600); }
+    function readDMS(pt){ const la = dmsToDecimal( document.getElementById('lat'+pt+'_deg').value, document.getElementById('lat'+pt+'_min').value, document.getElementById('lat'+pt+'_sec').value ); const lo = dmsToDecimal( document.getElementById('lon'+pt+'_deg').value, document.getElementById('lon'+pt+'_min').value, document.getElementById('lon'+pt+'_sec').value ); if (Number.isFinite(la) && Number.isFinite(lo)) return {lat:la, lon:lo}; return null; }
+    function setPair(pt, lat, lon){ document.getElementById('latlon'+pt).value = `${lat.toFixed(6)},${lon.toFixed(6)}`; }
+    function setDecimal(pt, lat, lon){ document.getElementById('lat'+pt+'_dec').value = Number.isFinite(lat)? lat.toFixed(6) : ''; document.getElementById('lon'+pt+'_dec').value = Number.isFinite(lon)? lon.toFixed(6) : ''; }
+    function decimalToDMS(val){ if (!Number.isFinite(val)) return {deg:'',min:'',sec:''}; const sign = val < 0 ? -1 : 1; const abs = Math.abs(val); const deg = Math.trunc(abs) * sign; const minFloat = (abs - Math.trunc(abs)) * 60; const min = Math.trunc(minFloat); const sec = ((minFloat - min) * 60).toFixed(2); return {deg, min, sec}; }
+    function setDMSFromDecimal(pt, lat, lon){ const La = decimalToDMS(lat), Lo = decimalToDMS(lon); document.getElementById('lat'+pt+'_deg').value = La.deg; document.getElementById('lat'+pt+'_min').value = La.min; document.getElementById('lat'+pt+'_sec').value = La.sec; document.getElementById('lon'+pt+'_deg').value = Lo.deg; document.getElementById('lon'+pt+'_min').value = Lo.min; document.getElementById('lon'+pt+'_sec').value = Lo.sec; }
+    
+    function calculate() { 
+        const pts=['A','B','C','D'], coords={}, parts=[]; 
+        let mapHtml = '<ul>'; 
+        pts.forEach(pt => { 
+            let lat, lon; 
+            if (!isDecimal) { 
+                const d = readDMS(pt); 
+                lat = d? d.lat : NaN; 
+                lon = d? d.lon : NaN; 
+            } else { 
+                const p = readPair(pt) || readDecimal(pt); 
+                lat = p? p.lat : NaN; 
+                lon = p? p.lon : NaN; 
+            } 
+            if(Number.isFinite(lat) && Number.isFinite(lon)) {
+                parts.push(`${lat.toFixed(6)},${lon.toFixed(6)}`);
+            }
+            coords[pt] = [lat, lon]; 
+            const disabled = (!Number.isFinite(lat) || !Number.isFinite(lon)); 
+            const link = disabled ? `<span>${pt}点: -</span>` : `<button type="button" class="map-link" onclick="openMap(event, ${lat}, ${lon})">${pt}点: マップで開く</button>`; 
+            mapHtml += `<li>${link}</li>`; 
+        }); 
+        document.getElementById('mapLinks').innerHTML = mapHtml + '</ul>'; 
+        
+        let tbl = '<table><tr><th>区間</th><th>方位角</th><th>距離(km)</th></tr>';
+        const validPts = ['B','C','D'].filter(pt => Number.isFinite(coords[pt][0]) && Number.isFinite(coords[pt][1]) && Number.isFinite(coords.A[0]) && Number.isFinite(coords.A[1])); 
+        validPts.forEach(pt => { 
+            const [a1,b1] = coords.A, [a2,b2] = coords[pt]; 
+            const r = calcDistanceAndBearing(a1,b1,a2,b2); 
+            tbl += `<tr><td>A→${pt}</td><td>${r.dms}</td><td>${r.dist.toFixed(3)}</td></tr>`; 
+        }); 
+        document.getElementById('results').innerHTML = tbl + '</table>'; 
+        
+        // --- Map Update Logic ---
+        updateMap(coords);
+        // --- End Map Update Logic ---
+        
+        const base = location.origin + location.pathname.replace(/\/[^/]*$/, '/'); 
+        document.getElementById('shareURL').value = `${base}?location=${parts.join('-')}`; 
+    }
+
+    function calcDistanceAndBearing(lat1, lon1, lat2, lon2) { const R = 6371; const φ1 = toRad(lat1), φ2 = toRad(lat2), Δλ = toRad(lon2 - lon1); const y = Math.sin(Δλ)*Math.cos(φ2); const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ); const dec = (Math.atan2(y,x)*180/Math.PI + 360) % 360; const deg = Math.floor(dec), min = Math.floor((dec-deg)*60), sec = (((dec-deg)*60-min)*60).toFixed(1); const dms = `${deg}°${min}′${sec}″`; const a = Math.sin((φ2-φ1)/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2; const dist = R * 2 * Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); return { decimal:dec, dms, dist }; }
+    function toRad(d) { return d*Math.PI/180; }
+    let pendingCoord = null; const backdrop = document.getElementById('mapPickerBackdrop'); const btnApple = document.getElementById('btnApple'); const btnGoogle = document.getElementById('btnGoogle'); const btnClosePicker = document.getElementById('btnClosePicker');
+    function openPicker(lat, lon){ pendingCoord = {lat, lon}; backdrop.classList.add('show'); backdrop.setAttribute('aria-hidden','false'); }
+    function closePicker(){ backdrop.classList.remove('show'); backdrop.setAttribute('aria-hidden','true'); pendingCoord = null; }
+    backdrop.addEventListener('click', (e)=>{ if(e.target === backdrop) closePicker(); });
+    btnClosePicker.addEventListener('click', closePicker);
+    btnApple.addEventListener('click', ()=>{ if(!pendingCoord) return; const {lat, lon} = pendingCoord; const aHttp = `https://maps.apple.com/?q=${lat},${lon}`; openExternal(aHttp); closePicker(); });
+    btnGoogle.addEventListener('click', ()=>{ if(!pendingCoord) return; const {lat, lon} = pendingCoord; openExternal(`https://www.google.com/maps?q=${lat},${lon}`); closePicker(); });
+    function openMap(e, lat, lon){ if (e) e.preventDefault(); const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lon}`; if (isAndroid()) { openExternal(googleMapsUrl); return; } if (isAppleMobile()) { openPicker(lat, lon); return; } openExternal(googleMapsUrl); }
+    async function generateShareURL() { calculate(); const url = document.getElementById('shareURL').value; const btn = document.getElementById('shareBtn'); try { await copyText(url); showToast('共有URLをコピーしました'); } catch (e) { showToast('コピーに失敗しました'); } }
+    async function copyText(text) { if (!text) throw new Error('empty'); if (navigator.clipboard) { await navigator.clipboard.writeText(text); return; } const ta = document.createElement('textarea'); ta.value = text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+    function showToast(msg) { const toast = document.getElementById('toast'); toast.textContent = msg; toast.classList.add('show'); clearTimeout(showToast._timer); showToast._timer = setTimeout(() => { toast.classList.remove('show'); }, 2000); }
+    
+    function parseUrlInputs() { const params=new URLSearchParams(window.location.search); const loc=params.get('location')||''; const pairs=loc.split('-'); PTS.forEach((pt,i)=>{ if(pairs[i]){ document.getElementById('latlon'+pt).value=pairs[i]; const [la,lo]=pairs[i].split(',').map(s=>s.trim()); const lat=parseFloat(la), lon=parseFloat(lo); if (Number.isFinite(lat) && Number.isFinite(lon)) { setDecimal(pt, lat, lon); setDMSFromDecimal(pt, lat, lon); } } }); calculate(); }
+    function destPoint(latDeg, lonDeg, bearingDeg, distanceKm) { const R = 6371; const δ = distanceKm / R; const θ = ((bearingDeg % 360) + 360) % 360 * Math.PI/180; const φ1 = latDeg * Math.PI/180; const λ1 = lonDeg * Math.PI/180; const sinφ1 = Math.sin(φ1), cosφ1 = Math.cos(φ1); const sinδ = Math.sin(δ), cosδ = Math.cos(δ); const sinθ = Math.sin(θ), cosθ = Math.cos(θ); const sinφ2 = sinφ1 * cosδ + cosφ1 * sinδ * cosθ; const φ2 = Math.asin(sinφ2); const y = sinθ * sinδ * cosφ1; const x = cosδ - sinφ1 * sinφ2; const λ2 = λ1 + Math.atan2(y, x); const lat2 = φ2 * 180/Math.PI; let lon2 = λ2 * 180/Math.PI; lon2 = ((lon2 + 540) % 360) - 180; return { lat: lat2, lon: lon2 }; }
+    function readPointA() { let lat, lon; if (!isDecimal) { const d = readDMS('A'); lat = d ? d.lat : NaN; lon = d ? d.lon : NaN; } else { const p = readPair('A') || readDecimal('A'); lat = p ? p.lat : NaN; lon = p ? p.lon : NaN; } if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null; return { lat, lon }; }
+    
+    function createMarkerIcon(label, color) {
+        const svg = `
+            <svg width="32" height="42" viewBox="0 0 32 42" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.4"/>
+                    </filter>
+                </defs>
+                <path d="M16 0 C7.163 0 0 7.163 0 16 C0 24.837 16 42 16 42 C16 42 32 24.837 32 16 C32 7.163 24.837 0 16 0 Z" fill="${color}" filter="url(#shadow)"></path>
+                <circle cx="16" cy="16" r="12" fill="white"></circle>
+                <text x="16" y="21" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#333">${label}</text>
+            </svg>`;
+        return L.divIcon({
+            html: svg,
+            className: 'leaflet-div-icon',
+            iconSize: [32, 42],
+            iconAnchor: [16, 42]
+        });
+    }
+    
+    function addArbitraryLink() {
+        const A = readPointA();
+        if (!A) {
+            showToast('基準点Aが未入力です');
+            return;
+        }
+        const bearing = parseFloat(document.getElementById('any_bearing').value);
+        let distVal = parseFloat(document.getElementById('any_distance').value);
+        const unit = document.getElementById('any_unit').value;
+        if (!Number.isFinite(bearing) || !Number.isFinite(distVal) || distVal < 0) {
+            showToast('有効な角度・距離を入力してください');
+            return;
+        }
+        if (unit === 'm') distVal /= 1000.0;
+        
+        const d = destPoint(A.lat, A.lon, bearing, distVal);
+        const normBearing = (((bearing % 360) + 360) % 360).toFixed(1);
+        
+        mapArbitraryPoints.push({ lat: d.lat, lon: d.lon, id: arbitraryPointCounter });
+
+        const labelText = `${arbitraryPointCounter}: 角度${normBearing}° 距離${distVal.toFixed(3)}km`;
+        const createLink = (lat, lon) => {
+            const li = document.createElement('li');
+            const btn = document.createElement('button');
+            btn.className = 'map-link';
+            btn.type = 'button';
+            btn.textContent = `${labelText} → マップで開く`;
+            btn.addEventListener('click', (e) => openMap(e, lat, lon));
+            li.appendChild(btn);
+            return li;
+        };
+        document.getElementById('arbList').appendChild(createLink(d.lat, d.lon));
+        document.getElementById('mapLinksArb').appendChild(createLink(d.lat, d.lon));
+        
+        arbitraryPointCounter++;
+        showToast('任意地点を追加しました');
+        
+        calculate();
+    }
+    
+    function clearArbitrary() {
+        document.getElementById('any_bearing').value = '';
+        document.getElementById('any_distance').value = '';
+        document.getElementById('any_unit').value = 'km';
+        document.getElementById('arbList').innerHTML = '';
+        document.getElementById('mapLinksArb').innerHTML = '';
+        
+        mapArbitraryPoints = [];
+        arbitraryPointCounter = 1;
+
+        showToast('任意地点をすべてクリアしました');
+        
+        calculate();
+    }
+    
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        const activeTabId = button.dataset.tab;
+        tabPanels.forEach(panel => {
+          if (panel.id === activeTabId) {
+            panel.classList.add('active');
+          } else {
+            panel.classList.remove('active');
+          }
+        });
+        if (activeTabId === 'tab-results') {
+          initializeMap();
+          calculate();
+        }
+      });
+    });
+
+    function switchToResultsTab() {
+        document.querySelector('.tab-button[data-tab="tab-results"]').click();
+    }
+
+    function initializeMap() {
+      if (!map) {
+        map = L.map('map').setView([35.681236, 139.767125], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+      }
+    }
+    
+    function updateMap(coords) {
+      if (!map) return;
+
+      mapMarkers.forEach(marker => map.removeLayer(marker));
+      mapPolylines.forEach(line => map.removeLayer(line));
+      mapMarkers = [];
+      mapPolylines = [];
+
+      const validCoords = [];
+      const colors = { A: '#007aff', B: '#ff3b30', C: '#34c759', D: '#ff9500' };
+
+      PTS.forEach(pt => {
+        const [lat, lon] = coords[pt];
+        if (Number.isFinite(lat) && Number.isFinite(lon)) {
+          const icon = createMarkerIcon(pt, colors[pt]);
+          const marker = L.marker([lat, lon], {icon}).addTo(map).bindPopup(`地点 ${pt}<br>${lat.toFixed(5)}, ${lon.toFixed(5)}`);
+          mapMarkers.push(marker);
+          validCoords.push([lat, lon]);
+        }
+      });
+
+      mapArbitraryPoints.forEach(point => {
+          const icon = createMarkerIcon(point.id, '#9b59b6'); // Purple color for arbitrary points
+          const marker = L.marker([point.lat, point.lon], { icon }).addTo(map).bindPopup(`任意地点 ${point.id}`);
+          mapMarkers.push(marker);
+          validCoords.push([point.lat, point.lon]);
+      });
+      
+      const pointA = coords.A;
+      if(Number.isFinite(pointA[0]) && Number.isFinite(pointA[1])) {
+          const northPoint = destPoint(pointA[0], pointA[1], 0, 2); // 2km North
+          const northLine = L.polyline([pointA, [northPoint.lat, northPoint.lon]], { color: '#007aff', weight: 3, opacity: 0.8 }).addTo(map);
+          mapPolylines.push(northLine);
+
+          const allTargets = [
+              ...['B', 'C', 'D'].map(pt => coords[pt]),
+              ...mapArbitraryPoints.map(p => [p.lat, p.lon])
+          ].filter(p => Number.isFinite(p[0]) && Number.isFinite(p[1]));
+
+          allTargets.forEach((targetPoint, index) => {
+              const color = lineColors[index % lineColors.length];
+              const line = L.polyline([targetPoint, pointA], { color: color, weight: 3, opacity: 0.8 }).addTo(map);
+              mapPolylines.push(line);
+          });
+      }
+
+      if (validCoords.length > 0) {
+        map.fitBounds(validCoords, { padding: [50, 50], maxZoom: 16 });
+      }
+    }
+
+    window.onload=function(){
+      const showHelpBtn = document.getElementById('showHelpBtn');
+      const helpModal = document.getElementById('help-modal');
+      const closeHelpBtn = document.getElementById('closeHelpBtn');
+
+      showHelpBtn.addEventListener('click', () => { helpModal.style.display = 'flex'; });
+      closeHelpBtn.addEventListener('click', () => { helpModal.style.display = 'none'; });
+      helpModal.addEventListener('click', (e) => { if (e.target === helpModal) { helpModal.style.display = 'none'; } });
+
+      parseUrlInputs();
+      
+      document.getElementById('any_add_btn').addEventListener('click', addArbitraryLink);
+      document.getElementById('any_clear_btn').addEventListener('click', clearArbitrary);
+      document.getElementById('getLocationBtn').addEventListener('click', function() { if (navigator.geolocation) { navigator.geolocation.getCurrentPosition( function(position) { const lat = position.coords.latitude; const lon = position.coords.longitude; setPair('A', lat, lon); setDecimal('A', lat, lon); setDMSFromDecimal('A', lat, lon); calculate(); showToast('現在地をAに設定しました'); }, function(error) { let msg = "位置情報の取得に失敗"; switch(error.code) { case 1: msg = "位置情報の利用が許可されていません"; break; case 2: msg = "位置情報を取得できませんでした"; break; case 3: msg = "タイムアウトしました"; break; } showToast(msg); } ); } else { showToast('ブラウザが位置情報取得に非対応です'); } });
+      
+      PTS.forEach(pt=>{ 
+          document.getElementById('latlon'+pt).addEventListener('input', calculate);
+          ['lat','lon'].forEach(kind=>{ 
+              document.getElementById(kind+pt+'_dec').addEventListener('input', calculate);
+          }); 
+          [['lat','deg'],['lat','min'],['lat','sec'],['lon','deg'],['lon','min'],['lon','sec']].forEach(([k,s])=>{ 
+              document.getElementById(k+pt+'_'+s).addEventListener('input', calculate);
+          }); 
+      });
+      
+      calculate();
+    };
+    
+    PTS.forEach(pt=>{ 
+        document.getElementById('latlon'+pt).addEventListener('change',()=>{ const p = readPair(pt); if (p){ setDecimal(pt, p.lat, p.lon); setDMSFromDecimal(pt, p.lat, p.lon); } });
+        ['lat','lon'].forEach(kind=>{ 
+            document.getElementById(kind+pt+'_dec').addEventListener('change',()=>{ const dec = readDecimal(pt); if (dec){ setPair(pt, dec.lat, dec.lon); setDMSFromDecimal(pt, dec.lat, dec.lon); } }); 
+        }); 
+        [['lat','deg'],['lat','min'],['lat','sec'],['lon','deg'],['lon','min'],['lon','sec']].forEach(([k,s])=>{ 
+            document.getElementById(k+pt+'_'+s).addEventListener('change',()=>{ const d = readDMS(pt); if (d){ setDecimal(pt, d.lat, d.lon); setPair(pt, d.lat, d.lon); } }); 
+        }); 
+    });
+  </script>
+</body>
+</html>
+
