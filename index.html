@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>方位角・距離計算ツール</title>
+  <link rel="icon" href="image/logo.png" type="image/png">
   <style>
     :root {
       --system-blue: #007aff;
@@ -90,7 +91,7 @@
     }
     .dmsInput { display: none; }
     .decimalInput { display: table-cell; }
-    button {
+    button, .link-button {
       margin: 0.5em 0.2em;
       padding: 0.6em 1.2em;
       font-size: 14px;
@@ -98,6 +99,9 @@
       border-radius: 8px;
       cursor: pointer;
       font-weight: 500;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
     }
     .button-primary {
       background: var(--system-blue);
@@ -135,12 +139,36 @@
     .btn-outline:hover { background: #f0f8ff; }
     .btn-close { margin-top: 8px; width: 100%; background: #e5e7eb; color: #333; border: none; border-radius: 8px; padding: 10px 12px; cursor: pointer; }
     .btn-close:hover { background: #d1d5db; }
+
+    .help-section {
+        margin-bottom: 1.5em;
+    }
+    .help-section h4 {
+        font-size: 1.1em;
+        border-bottom: 1px solid var(--separator-color);
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+    }
+    .help-section p, .help-section li {
+        font-size: 0.95em;
+        line-height: 1.6;
+        color: var(--secondary-text-color);
+    }
+    .help-section ul, .help-section ol {
+        padding-left: 20px;
+    }
   </style>
 </head>
 <body>
 
   <div class="container">
     <h2>方位角・距離計算ツール</h2>
+    
+    <!-- ▼▼▼ new.htmlへのリンクを追加 ▼▼▼ -->
+    <a href="new.html" class="link-button button-primary" style="background-color: #34c759; display: block; margin-bottom: 1em;">✨ 地図機能付きの新バージョンを試す！</a>
+    <!-- ▲▲▲ ここまで追加 ▲▲▲ -->
+
+    <button type="button" id="showHelpBtn" class="button-secondary" style="margin-bottom: 1em;">使い方ガイド（ヘルプ）</button>
 
     <div class="tab-nav">
       <button class="tab-button active" data-tab="tab-calc">入力</button>
@@ -210,6 +238,52 @@
 
   <div id="toast" role="status" aria-live="polite"></div>
   <div id="mapPickerBackdrop" class="modal-backdrop" aria-hidden="true"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mapPickerTitle"><h4 id="mapPickerTitle">開くマップを選択</h4><div class="btn-row"><button id="btnApple" class="btn-outline" type="button">Appleマップ</button><button id="btnGoogle" class="btn-outline" type="button">Googleマップ</button></div><button id="btnClosePicker" class="btn-close" type="button">閉じる</button></div></div>
+  
+  <div id="help-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal" style="max-height: 85vh; overflow-y: auto; text-align: left;">
+      <h3 style="text-align: center; margin-top:0;">「方位角・距離計算ツール」の使い方</h3>
+      
+      <div class="help-section">
+          <h4>はじめに</h4>
+          <p>このツールは、基準点から目標地点への「方角（方位角）」と「直線距離」を計算します。</p>
+      </div>
+
+      <div class="help-section">
+          <h4>「現地」での基本的な使い方</h4>
+          <ol>
+              <li><strong>基準点（A地点）を決める</strong><br>
+                  基準場所を決めます。「<code style="font-family: monospace; background: #eee; padding: 2px 4px; border-radius: 3px;">現在地をAに設定🌍</code>」ボタンを押すのが一番簡単です。特定の場所から始める場合は、Googleマップでその場所の緯度経度をコピーし、「緯度・経度ペア」の欄に貼り付けます。
+              </li>
+              <li><strong>目的地（B, C...地点）を決める</strong><br>
+                  対象局の緯度経度を、同じようにB地点、C地点...の欄に入力します。
+              </li>
+              <li><strong>結果を見る</strong><br>
+                  「<code style="font-family: monospace; background: #eee; padding: 2px 4px; border-radius: 3px;">結果</code>」ボタンを押すと、結果タブに切り替わります。
+              </li>
+              <li><strong>結果を理解する</strong><br>
+                  - <strong>方位角</strong>: A地点から見て、目的地がどの方角にあるかを示します。（真北が0度）<br>
+                  - <strong>距離</strong>: 目的地までの直線距離です。歩く時間の目安になります。<br>
+                  - <strong>マップで開く</strong>: リンクを押すと、Googleマップなどで実際の場所や道順を確認できます。
+              </li>
+          </ol>
+      </div>
+
+      <div class="help-section">
+          <h4>各機能の説明</h4>
+          <ul>
+              <li><strong>入力タブ</strong>: 「入力モード切替」ボタンで、緯度経度の入力を「10進数（例: 33.589）」と「60進数（度分秒）」で切り替えられます。</li>
+              <li><strong>結果タブ</strong>: 計算結果の表のほか、A地点を中心とした各地点の方角を視覚的に示した図が表示されます。</li>
+              <li><strong>ツールタブ</strong>:
+                  <ul>
+                      <li><strong>任意の角度・距離でリンクを追加:</strong> A地点から「北東（45°）の方角へ500m」のような、方角と距離が分かっている場所の地図リンクを生成できます。</li>
+                      <li><strong>共有URL:</strong> 入力した全地点の情報を含んだURLを生成・コピーできます。計画を友達に送るのに便利です。</li>
+                  </ul>
+              </li>
+          </ul>
+      </div>
+      <button id="closeHelpBtn" class="btn-close">閉じる</button>
+    </div>
+  </div>
   
   <script>
     let isDecimal = true;
@@ -338,6 +412,24 @@
     }
 
     window.onload=function(){
+      // ▼▼▼ このヘルプ用JavaScriptを追加 ▼▼▼
+      const showHelpBtn = document.getElementById('showHelpBtn');
+      const helpModal = document.getElementById('help-modal');
+      const closeHelpBtn = document.getElementById('closeHelpBtn');
+
+      showHelpBtn.addEventListener('click', () => {
+        helpModal.style.display = 'flex';
+      });
+      closeHelpBtn.addEventListener('click', () => {
+        helpModal.style.display = 'none';
+      });
+      helpModal.addEventListener('click', (e) => {
+        if (e.target === helpModal) {
+          helpModal.style.display = 'none';
+        }
+      });
+      // ▲▲▲ ここまで追加 ▲▲▲
+
       parseUrlInputs();
       
       document.getElementById('any_add_btn').addEventListener('click', addArbitraryLink);
@@ -346,7 +438,16 @@
       calculate();
     };
     
-    PTS.forEach(pt=>{ document.getElementById('latlon'+pt).addEventListener('input',()=>{ const p = readPair(pt); if (p){ setDecimal(pt, p.lat, p.lon); setDMSFromDecimal(pt, p.lat, p.lon); calculate(); } }); ['lat','lon'].forEach(kind=>{ document.getElementById(kind+pt+'_dec').addEventListener('input',()=>{ const dec = readDecimal(pt); if (dec){ setPair(pt, dec.lat, dec.lon); setDMSFromDecimal(pt, dec.lat, dec.lon); calculate(); } }); }); [['lat','deg'],['lat','min'],['lat','sec'],['lon','deg'],['lon','min'],['lon','sec']].forEach(([k,s])=>{ document.getElementById(k+pt+'_sec').addEventListener('input',()=>{ const d = readDMS(pt); if (d){ setDecimal(pt, d.lat, d.lon); setPair(pt, d.lat, d.lon); calculate(); } }); }); });
+    PTS.forEach(pt=>{ 
+        document.getElementById('latlon'+pt).addEventListener('input',()=>{ const p = readPair(pt); if (p){ setDecimal(pt, p.lat, p.lon); setDMSFromDecimal(pt, p.lat, p.lon); calculate(); } }); 
+        ['lat','lon'].forEach(kind=>{ 
+            document.getElementById(kind+pt+'_dec').addEventListener('input',()=>{ const dec = readDecimal(pt); if (dec){ setPair(pt, dec.lat, dec.lon); setDMSFromDecimal(pt, dec.lat, dec.lon); calculate(); } }); 
+        }); 
+        [['lat','deg'],['lat','min'],['lat','sec'],['lon','deg'],['lon','min'],['lon','sec']].forEach(([k,s])=>{ 
+            document.getElementById(k+pt+'_sec').addEventListener('input',()=>{ const d = readDMS(pt); if (d){ setDecimal(pt, d.lat, d.lon); setPair(pt, d.lat, d.lon); calculate(); } }); 
+        }); 
+    });
   </script>
 </body>
 </html>
+
